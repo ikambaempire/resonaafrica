@@ -11,14 +11,14 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
-import Register from "./pages/Register";
-import CompanyPage from "./pages/CompanyPage";
-import Events from "./pages/dashboard/Events";
-import CreateEvent from "./pages/dashboard/CreateEvent";
-import EventDetail from "./pages/dashboard/EventDetail";
-import Attendees from "./pages/dashboard/Attendees";
+import Discover from "./pages/Discover";
+import CreatorDashboard from "./pages/dashboard/CreatorDashboard";
+import Content from "./pages/dashboard/Content";
 import Analytics from "./pages/dashboard/Analytics";
+import Monetization from "./pages/dashboard/Monetization";
+import Scheduler from "./pages/dashboard/Scheduler";
 import Integrations from "./pages/dashboard/Integrations";
+import AIClips from "./pages/dashboard/AIClips";
 import SettingsPage from "./pages/dashboard/SettingsPage";
 import NotFound from "./pages/NotFound";
 
@@ -34,7 +34,7 @@ function ScrollToTop() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} storageKey="app-theme">
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="amplify-theme">
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
@@ -45,21 +45,20 @@ const App = () => (
               {/* Public */}
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/register/:slug" element={<Register />} />
-              <Route path="/company/:companySlug" element={<CompanyPage />} />
+              <Route path="/discover" element={<Discover />} />
 
               {/* Dashboard (protected) */}
-              <Route path="/dashboard" element={<Navigate to="/dashboard/events" replace />} />
+              <Route path="/dashboard" element={<Navigate to="/dashboard/overview" replace />} />
               <Route path="/dashboard/*" element={
                 <ProtectedRoute>
                   <DashboardLayout>
                     <Routes>
-                      <Route path="events" element={<Events />} />
-                      <Route path="events/create" element={<CreateEvent />} />
-                      <Route path="events/:id" element={<EventDetail />} />
-                      <Route path="events/:id/edit" element={<CreateEvent />} />
-                      <Route path="attendees" element={<Attendees />} />
+                      <Route path="overview" element={<CreatorDashboard />} />
+                      <Route path="content" element={<Content />} />
                       <Route path="analytics" element={<Analytics />} />
+                      <Route path="monetization" element={<Monetization />} />
+                      <Route path="scheduler" element={<Scheduler />} />
+                      <Route path="ai-clips" element={<AIClips />} />
                       <Route path="integrations" element={<Integrations />} />
                       <Route path="settings" element={<SettingsPage />} />
                     </Routes>
