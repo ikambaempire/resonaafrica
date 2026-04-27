@@ -22,7 +22,7 @@ const Auth = () => {
   const [signupPassword, setSignupPassword] = useState("");
 
   useEffect(() => {
-    if (user) navigate("/dashboard/events", { replace: true });
+    if (user) navigate("/dashboard/overview", { replace: true });
   }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -37,7 +37,7 @@ const Auth = () => {
       toast.error(error.message);
     } else {
       toast.success("Welcome back!");
-      navigate("/dashboard/events");
+      navigate("/dashboard/overview");
     }
   };
 
@@ -56,21 +56,22 @@ const Auth = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Account created! Check your email to confirm, or you may be logged in automatically.");
-      navigate("/dashboard/events");
+      toast.success("Account created! Welcome to Amplify Africa.");
+      navigate("/dashboard/overview");
     }
   };
 
+  const handleGoogle = async () => {
+    const { error } = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    if (error) toast.error(error.message || "Google sign-in failed");
+  };
+
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 relative overflow-hidden">
-      {/* Subtle decorative shapes like the landing page confetti */}
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden gradient-hero">
+      {/* Decorative blobs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[10%] left-[8%] w-16 h-16 rounded-full bg-primary/10 blur-sm" />
-        <div className="absolute top-[20%] right-[12%] w-12 h-12 rounded-lg bg-primary/8 rotate-12 blur-sm" />
-        <div className="absolute bottom-[15%] left-[15%] w-10 h-10 rounded-full bg-primary/10 blur-sm" />
-        <div className="absolute bottom-[25%] right-[8%] w-14 h-14 rounded-lg bg-primary/6 -rotate-12 blur-sm" />
-        <div className="absolute top-[50%] left-[5%] w-8 h-8 rounded-full bg-muted-foreground/5 blur-sm" />
-        <div className="absolute top-[40%] right-[5%] w-20 h-20 rounded-full bg-primary/5 blur-md" />
+        <div className="absolute top-[10%] left-[8%] w-32 h-32 rounded-full bg-accent/10 blur-3xl" />
+        <div className="absolute bottom-[15%] right-[10%] w-40 h-40 rounded-full bg-primary/30 blur-3xl" />
       </div>
 
       <motion.div
@@ -79,24 +80,22 @@ const Auth = () => {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md relative z-10"
       >
-        {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-block">
             <Logo size="lg" />
           </Link>
-          <p className="text-muted-foreground mt-2 text-sm font-body">
-            Create events people actually want to attend
+          <p className="text-muted-foreground mt-3 text-sm">
+            Host, grow, and monetize your podcast across Africa.
           </p>
         </div>
 
-        {/* Auth card */}
-        <div className="bg-card rounded-2xl border border-border shadow-lg p-6">
+        <div className="bg-card/80 backdrop-blur-sm rounded-3xl border border-border/60 shadow-soft p-6">
           <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2 rounded-full bg-muted p-1 mb-6">
-              <TabsTrigger value="login" className="rounded-full data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm font-medium">
+            <TabsList className="grid w-full grid-cols-2 rounded-full bg-secondary p-1 mb-6">
+              <TabsTrigger value="login" className="rounded-full data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm font-semibold">
                 Log in
               </TabsTrigger>
-              <TabsTrigger value="signup" className="rounded-full data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm font-medium">
+              <TabsTrigger value="signup" className="rounded-full data-[state=active]:bg-card data-[state=active]:shadow-sm text-sm font-semibold">
                 Sign up
               </TabsTrigger>
             </TabsList>
@@ -104,30 +103,14 @@ const Auth = () => {
             <TabsContent value="login" className="mt-0">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="email-login" className="text-sm font-medium text-foreground">Email</Label>
-                  <Input
-                    id="email-login"
-                    type="email"
-                    placeholder="you@company.com"
-                    required
-                    value={loginEmail}
-                    onChange={e => setLoginEmail(e.target.value)}
-                    className="rounded-full h-11 px-4 border-input"
-                  />
+                  <Label htmlFor="email-login" className="text-sm font-medium">Email</Label>
+                  <Input id="email-login" type="email" placeholder="you@email.com" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="rounded-full h-11 px-4" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="password-login" className="text-sm font-medium text-foreground">Password</Label>
-                  <Input
-                    id="password-login"
-                    type="password"
-                    placeholder="••••••••"
-                    required
-                    value={loginPassword}
-                    onChange={e => setLoginPassword(e.target.value)}
-                    className="rounded-full h-11 px-4 border-input"
-                  />
+                  <Label htmlFor="password-login" className="text-sm font-medium">Password</Label>
+                  <Input id="password-login" type="password" placeholder="••••••••" required value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="rounded-full h-11 px-4" />
                 </div>
-                <Button type="submit" className="w-full rounded-full h-11 bg-foreground text-background hover:bg-foreground/90 font-medium" disabled={loading}>
+                <Button type="submit" className="w-full rounded-full h-11 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold shadow-gold" disabled={loading}>
                   {loading ? "Signing in…" : "Sign in"}
                 </Button>
               </form>
@@ -137,14 +120,7 @@ const Auth = () => {
                 <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-3 text-muted-foreground">Or</span></div>
               </div>
 
-              <Button
-                variant="outline"
-                className="w-full mt-5 rounded-full h-11 border-input hover:bg-muted font-medium"
-                onClick={async () => {
-                  const { error } = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-                  if (error) toast.error(error.message || "Google sign-in failed");
-                }}
-              >
+              <Button variant="outline" className="w-full mt-5 rounded-full h-11 font-medium" onClick={handleGoogle}>
                 <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -158,41 +134,18 @@ const Auth = () => {
             <TabsContent value="signup" className="mt-0">
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="name-signup" className="text-sm font-medium text-foreground">Full name</Label>
-                  <Input
-                    id="name-signup"
-                    placeholder="Jane Doe"
-                    required
-                    value={signupName}
-                    onChange={e => setSignupName(e.target.value)}
-                    className="rounded-full h-11 px-4 border-input"
-                  />
+                  <Label htmlFor="name-signup" className="text-sm font-medium">Full name</Label>
+                  <Input id="name-signup" placeholder="Ada Eze" required value={signupName} onChange={e => setSignupName(e.target.value)} className="rounded-full h-11 px-4" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="email-signup" className="text-sm font-medium text-foreground">Email</Label>
-                  <Input
-                    id="email-signup"
-                    type="email"
-                    placeholder="you@company.com"
-                    required
-                    value={signupEmail}
-                    onChange={e => setSignupEmail(e.target.value)}
-                    className="rounded-full h-11 px-4 border-input"
-                  />
+                  <Label htmlFor="email-signup" className="text-sm font-medium">Email</Label>
+                  <Input id="email-signup" type="email" placeholder="you@email.com" required value={signupEmail} onChange={e => setSignupEmail(e.target.value)} className="rounded-full h-11 px-4" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="password-signup" className="text-sm font-medium text-foreground">Password</Label>
-                  <Input
-                    id="password-signup"
-                    type="password"
-                    placeholder="••••••••"
-                    required
-                    value={signupPassword}
-                    onChange={e => setSignupPassword(e.target.value)}
-                    className="rounded-full h-11 px-4 border-input"
-                  />
+                  <Label htmlFor="password-signup" className="text-sm font-medium">Password</Label>
+                  <Input id="password-signup" type="password" placeholder="••••••••" required value={signupPassword} onChange={e => setSignupPassword(e.target.value)} className="rounded-full h-11 px-4" />
                 </div>
-                <Button type="submit" className="w-full rounded-full h-11 bg-foreground text-background hover:bg-foreground/90 font-medium" disabled={loading}>
+                <Button type="submit" className="w-full rounded-full h-11 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold shadow-gold" disabled={loading}>
                   {loading ? "Creating account…" : "Create account"}
                 </Button>
               </form>
@@ -202,14 +155,7 @@ const Auth = () => {
                 <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-3 text-muted-foreground">Or</span></div>
               </div>
 
-              <Button
-                variant="outline"
-                className="w-full mt-5 rounded-full h-11 border-input hover:bg-muted font-medium"
-                onClick={async () => {
-                  const { error } = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-                  if (error) toast.error(error.message || "Google sign-in failed");
-                }}
-              >
+              <Button variant="outline" className="w-full mt-5 rounded-full h-11 font-medium" onClick={handleGoogle}>
                 <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -224,6 +170,9 @@ const Auth = () => {
 
         <p className="text-center text-xs text-muted-foreground mt-6">
           By continuing, you agree to our Terms of Service and Privacy Policy.
+        </p>
+        <p className="text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-3">
+          Powered by <span className="text-accent font-semibold">iKAMBA</span>
         </p>
       </motion.div>
     </div>
