@@ -14,160 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      email_templates: {
-        Row: {
-          body: string
-          enabled: boolean
-          event_id: string
-          id: string
-          subject: string
-          template_type: Database["public"]["Enums"]["email_template_type"]
-        }
-        Insert: {
-          body?: string
-          enabled?: boolean
-          event_id: string
-          id?: string
-          subject?: string
-          template_type: Database["public"]["Enums"]["email_template_type"]
-        }
-        Update: {
-          body?: string
-          enabled?: boolean
-          event_id?: string
-          id?: string
-          subject?: string
-          template_type?: Database["public"]["Enums"]["email_template_type"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "email_templates_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      events: {
-        Row: {
-          background_image_url: string | null
-          capacity: number | null
-          color_mode: string | null
-          created_at: string
-          description: string | null
-          event_date: string | null
-          event_end_date: string | null
-          event_type: string | null
-          id: string
-          location_type: string | null
-          location_value: string | null
-          logo_url: string | null
-          name: string
-          primary_color: string | null
-          registration_deadline: string | null
-          registration_limit: number | null
-          requires_approval: boolean | null
-          slug: string
-          status: Database["public"]["Enums"]["event_status"]
-          template: string | null
-          ticket_price: number | null
-          timezone: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          background_image_url?: string | null
-          capacity?: number | null
-          color_mode?: string | null
-          created_at?: string
-          description?: string | null
-          event_date?: string | null
-          event_end_date?: string | null
-          event_type?: string | null
-          id?: string
-          location_type?: string | null
-          location_value?: string | null
-          logo_url?: string | null
-          name: string
-          primary_color?: string | null
-          registration_deadline?: string | null
-          registration_limit?: number | null
-          requires_approval?: boolean | null
-          slug: string
-          status?: Database["public"]["Enums"]["event_status"]
-          template?: string | null
-          ticket_price?: number | null
-          timezone?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          background_image_url?: string | null
-          capacity?: number | null
-          color_mode?: string | null
-          created_at?: string
-          description?: string | null
-          event_date?: string | null
-          event_end_date?: string | null
-          event_type?: string | null
-          id?: string
-          location_type?: string | null
-          location_value?: string | null
-          logo_url?: string | null
-          name?: string
-          primary_color?: string | null
-          registration_deadline?: string | null
-          registration_limit?: number | null
-          requires_approval?: boolean | null
-          slug?: string
-          status?: Database["public"]["Enums"]["event_status"]
-          template?: string | null
-          ticket_price?: number | null
-          timezone?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      form_fields: {
-        Row: {
-          event_id: string
-          field_type: string
-          id: string
-          label: string
-          placeholder: string | null
-          position: number
-          required: boolean
-        }
-        Insert: {
-          event_id: string
-          field_type?: string
-          id?: string
-          label: string
-          placeholder?: string | null
-          position?: number
-          required?: boolean
-        }
-        Update: {
-          event_id?: string
-          field_type?: string
-          id?: string
-          label?: string
-          placeholder?: string | null
-          position?: number
-          required?: boolean
-        }
-        Relationships: [
-          {
-            foreignKeyName: "form_fields_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -207,38 +53,6 @@ export type Database = {
         }
         Relationships: []
       }
-      registrations: {
-        Row: {
-          created_at: string
-          data: Json
-          event_id: string
-          id: string
-          status: Database["public"]["Enums"]["registration_status"]
-        }
-        Insert: {
-          created_at?: string
-          data?: Json
-          event_id: string
-          id?: string
-          status?: Database["public"]["Enums"]["registration_status"]
-        }
-        Update: {
-          created_at?: string
-          data?: Json
-          event_id?: string
-          id?: string
-          status?: Database["public"]["Enums"]["registration_status"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "registrations_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_roles: {
         Row: {
           id: string
@@ -262,7 +76,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_registration_count: { Args: { p_event_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -270,16 +83,10 @@ export type Database = {
         }
         Returns: boolean
       }
-      register_for_event: {
-        Args: { p_data: Json; p_event_id: string }
-        Returns: string
-      }
     }
     Enums: {
-      app_role: "admin" | "editor" | "viewer"
+      app_role: "admin" | "editor" | "viewer" | "creator"
       email_template_type: "confirmation" | "reminder" | "followup"
-      event_status: "draft" | "live" | "past"
-      registration_status: "registered" | "checked_in" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -407,10 +214,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "editor", "viewer"],
+      app_role: ["admin", "editor", "viewer", "creator"],
       email_template_type: ["confirmation", "reminder", "followup"],
-      event_status: ["draft", "live", "past"],
-      registration_status: ["registered", "checked_in", "cancelled"],
     },
   },
 } as const

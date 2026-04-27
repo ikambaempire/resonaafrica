@@ -4,90 +4,98 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap');
 
+/* Amplify Africa design tokens
+   Primary navy:  #112d4a -> hsl(212 62% 18%)
+   Accent gold:   #ffb929 -> hsl(40 100% 58%)
+   Pure white:    #ffffff
+*/
+
 @layer base {
   :root {
-    --background: 0 0% 98%;
-    --foreground: 240 30% 14%;
+    /* Light mode (used sparingly — dark is default) */
+    --background: 0 0% 100%;
+    --foreground: 212 62% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 240 30% 14%;
+    --card-foreground: 212 62% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 240 30% 14%;
+    --popover-foreground: 212 62% 12%;
 
-    --primary: 340 75% 58%;
+    --primary: 212 62% 18%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 10% 94%;
-    --secondary-foreground: 240 30% 14%;
+    --secondary: 212 30% 94%;
+    --secondary-foreground: 212 62% 18%;
 
-    --muted: 240 10% 96%;
-    --muted-foreground: 240 5% 46%;
+    --muted: 212 20% 96%;
+    --muted-foreground: 212 15% 40%;
 
-    --accent: 240 10% 94%;
-    --accent-foreground: 240 30% 14%;
+    --accent: 40 100% 58%;
+    --accent-foreground: 212 62% 12%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 91%;
-    --input: 0 0% 91%;
-    --ring: 340 75% 58%;
+    --border: 212 20% 90%;
+    --input: 212 20% 90%;
+    --ring: 40 100% 58%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
 
-    --success: 172 50% 40%;
+    --success: 160 60% 40%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 80% 55%;
-    --warning-foreground: 0 0% 100%;
+    --warning: 40 100% 58%;
+    --warning-foreground: 212 62% 12%;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 30% 14%;
-    --sidebar-primary: 340 75% 58%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 96%;
-    --sidebar-accent-foreground: 240 30% 14%;
-    --sidebar-border: 0 0% 91%;
-    --sidebar-ring: 340 75% 58%;
+    --sidebar-foreground: 212 62% 18%;
+    --sidebar-primary: 40 100% 58%;
+    --sidebar-primary-foreground: 212 62% 12%;
+    --sidebar-accent: 212 20% 96%;
+    --sidebar-accent-foreground: 212 62% 18%;
+    --sidebar-border: 212 20% 90%;
+    --sidebar-ring: 40 100% 58%;
   }
 
   .dark {
-    --background: 240 25% 8%;
-    --foreground: 240 5% 95%;
+    /* Default — Amplify Africa dark UI */
+    --background: 212 62% 8%;       /* deep navy */
+    --foreground: 0 0% 98%;
 
-    --card: 240 25% 11%;
-    --card-foreground: 240 5% 95%;
+    --card: 212 50% 12%;            /* slightly lifted navy */
+    --card-foreground: 0 0% 98%;
 
-    --popover: 240 25% 11%;
-    --popover-foreground: 240 5% 95%;
+    --popover: 212 50% 12%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 340 75% 58%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 40 100% 58%;          /* gold is the action color in dark */
+    --primary-foreground: 212 62% 10%;
 
-    --secondary: 240 15% 18%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 212 40% 18%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 240 15% 18%;
-    --muted-foreground: 240 5% 55%;
+    --muted: 212 40% 16%;
+    --muted-foreground: 212 15% 70%;
 
-    --accent: 240 15% 18%;
-    --accent-foreground: 240 5% 95%;
+    --accent: 40 100% 58%;
+    --accent-foreground: 212 62% 10%;
 
-    --destructive: 0 62% 30%;
+    --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 15% 20%;
-    --input: 240 15% 20%;
-    --ring: 340 75% 58%;
+    --border: 212 35% 20%;
+    --input: 212 35% 20%;
+    --ring: 40 100% 58%;
 
-    --sidebar-background: 240 25% 8%;
-    --sidebar-foreground: 240 5% 85%;
-    --sidebar-primary: 340 75% 58%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 15% 14%;
-    --sidebar-accent-foreground: 240 5% 95%;
-    --sidebar-border: 240 15% 16%;
-    --sidebar-ring: 340 75% 58%;
+    --sidebar-background: 212 62% 8%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 40 100% 58%;
+    --sidebar-primary-foreground: 212 62% 10%;
+    --sidebar-accent: 212 40% 14%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 212 35% 18%;
+    --sidebar-ring: 40 100% 58%;
   }
 }
 
@@ -109,5 +117,24 @@
 @layer utilities {
   .prose-readable {
     max-width: 70ch;
+  }
+
+  .gradient-hero {
+    background:
+      radial-gradient(circle at 20% 20%, hsl(40 100% 58% / 0.15), transparent 50%),
+      radial-gradient(circle at 80% 60%, hsl(212 80% 30% / 0.4), transparent 55%),
+      hsl(var(--background));
+  }
+
+  .gradient-gold {
+    background: linear-gradient(135deg, hsl(40 100% 60%), hsl(35 100% 52%));
+  }
+
+  .shadow-soft {
+    box-shadow: 0 4px 24px -8px hsl(212 62% 4% / 0.5);
+  }
+
+  .shadow-gold {
+    box-shadow: 0 8px 32px -8px hsl(40 100% 50% / 0.35);
   }
 }

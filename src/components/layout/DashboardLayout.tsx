@@ -1,24 +1,28 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
-import { useProfile } from "@/hooks/useProfile";
 import { Button } from "@/components/ui/button";
 import {
-  CalendarDays,
-  Users,
+  LayoutDashboard,
+  Mic2,
   BarChart3,
+  DollarSign,
+  Calendar,
+  Sparkles,
   Puzzle,
   Settings,
   LogOut,
-  Eye,
 } from "lucide-react";
 
 const navItems = [
-  { title: "Events", url: "/dashboard/events", icon: CalendarDays },
-  { title: "Attendees", url: "/dashboard/attendees", icon: Users },
+  { title: "Overview", url: "/dashboard/overview", icon: LayoutDashboard },
+  { title: "Content", url: "/dashboard/content", icon: Mic2 },
   { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3 },
+  { title: "Monetization", url: "/dashboard/monetization", icon: DollarSign },
+  { title: "Scheduler", url: "/dashboard/scheduler", icon: Calendar },
+  { title: "AI Clips", url: "/dashboard/ai-clips", icon: Sparkles },
   { title: "Integrations", url: "/dashboard/integrations", icon: Puzzle },
   { title: "Settings", url: "/dashboard/settings", icon: Settings },
 ];
@@ -27,7 +31,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const mainRef = useRef<HTMLElement>(null);
   const { pathname } = useLocation();
   const { user, signOut } = useAuth();
-  const { data: profile } = useProfile();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -39,27 +42,20 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     navigate("/auth");
   };
 
-  const allItems = [
-    ...navItems,
-    ...(profile?.company_slug
-      ? [{ title: "Company", url: `/company/${profile.company_slug}`, icon: Eye }]
-      : []),
-  ];
-
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
-      <header className="h-14 flex items-center px-6 gap-4">
-        <Link to="/dashboard/events" className="mr-6 shrink-0">
+      <header className="h-16 flex items-center px-6 gap-4 border-b border-border/40 backdrop-blur-xl bg-background/80 sticky top-0 z-30">
+        <Link to="/dashboard/overview" className="mr-6 shrink-0">
           <Logo size="sm" />
         </Link>
-        <div className="flex-1 flex items-center h-full overflow-x-auto">
+        <div className="flex-1 flex items-center h-full overflow-x-auto scrollbar-hide">
           <div className="flex items-center gap-1">
-            {allItems.map((item) => (
+            {navItems.map((item) => (
               <NavLink
                 key={item.url}
                 to={item.url}
-                className="px-4 py-2 text-sm font-medium text-muted-foreground rounded-full transition-colors hover:text-foreground hover:bg-muted"
-                activeClassName="bg-foreground text-background hover:bg-foreground hover:text-background"
+                className="px-4 py-2 text-sm font-medium text-muted-foreground rounded-full transition-colors hover:text-foreground hover:bg-secondary whitespace-nowrap"
+                activeClassName="bg-accent text-accent-foreground hover:bg-accent hover:text-accent-foreground"
               >
                 {item.title}
               </NavLink>
@@ -75,7 +71,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </Button>
         </div>
       </header>
-      <main ref={mainRef} className="flex-1 p-4 sm:p-6 overflow-auto">{children}</main>
+      <main ref={mainRef} className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+        {children}
+      </main>
     </div>
   );
 }
