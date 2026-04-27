@@ -138,3 +138,8 @@
     box-shadow: 0 8px 32px -8px hsl(40 100% 50% / 0.35);
   }
 }
+
+@keyframes scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-33.3333%); }
+}

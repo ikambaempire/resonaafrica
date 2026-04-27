@@ -12,6 +12,14 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Discover from "./pages/Discover";
+import About from "./pages/About";
+import Services from "./pages/Services";
+import HowItWorks from "./pages/HowItWorks";
+import ForCreators from "./pages/ForCreators";
+import ForOrganizations from "./pages/ForOrganizations";
+import Partnerships from "./pages/Partnerships";
+import Roadmap from "./pages/Roadmap";
+import Contact from "./pages/Contact";
 import CreatorDashboard from "./pages/dashboard/CreatorDashboard";
 import Content from "./pages/dashboard/Content";
 import Analytics from "./pages/dashboard/Analytics";
@@ -46,6 +54,14 @@ const App = () => (
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/discover" element={<Discover />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/how-it-works" element={<HowItWorks />} />
+              <Route path="/for-creators" element={<ForCreators />} />
+              <Route path="/for-organizations" element={<ForOrganizations />} />
+              <Route path="/partnerships" element={<Partnerships />} />
+              <Route path="/roadmap" element={<Roadmap />} />
+              <Route path="/contact" element={<Contact />} />
 
               {/* Dashboard (protected) */}
               <Route path="/dashboard" element={<Navigate to="/dashboard/overview" replace />} />

@@ -7,78 +7,77 @@ import {
   BarChart3,
   Sparkles,
   Globe2,
-  Play,
-  Headphones,
-  Youtube,
-  Music2,
   ArrowRight,
-  Check,
+  Target,
+  EyeOff,
+  Wallet,
+  Lightbulb,
+  Video,
+  Share2,
+  Scissors,
+  Users,
+  Building2,
+  Megaphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PublicNav } from "@/components/PublicNav";
 import { Footer } from "@/components/Footer";
 
-const features = [
+const heroImages = [
+  "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=800&q=80", // podcast mic
+  "https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=800&q=80", // headphones
+  "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=800&q=80", // african musician
+  "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80", // recording studio
+  "https://images.unsplash.com/photo-1520532223790-8fe96829ee20?w=800&q=80", // african woman speaking
+  "https://images.unsplash.com/photo-1581368135153-a506cf13b1e1?w=800&q=80", // mic with light
+];
+
+const partnerLogos = [
+  "Spotify", "YouTube", "Apple Podcasts", "Audiomack", "Anchor", "Google Podcasts",
+];
+
+const problems = [
   {
-    icon: Mic2,
-    title: "Host audio & video",
-    description: "Upload once, distribute everywhere. Lossless audio, HD video, smart transcoding for African bandwidths.",
+    icon: Target,
+    title: "Lack of Strategy",
+    bullets: ["No clear audience definition", "Weak content positioning", "No long-term growth plan"],
   },
   {
-    icon: TrendingUp,
-    title: "Grow your audience",
-    description: "Discovery on the Amplify network plus syndication to YouTube, Spotify, and Apple Podcasts.",
+    icon: EyeOff,
+    title: "Limited Visibility",
+    bullets: ["Fragmented presence across platforms", "Low discoverability", "No centralized amplification"],
   },
   {
-    icon: BarChart3,
-    title: "Unified analytics",
-    description: "Plays, watch time, retention, and subscriber growth — across every platform in one view.",
+    icon: Wallet,
+    title: "Weak Monetization",
+    bullets: ["Over-reliance on ads", "Limited sponsorship access", "No structured revenue systems"],
   },
-  {
-    icon: DollarSign,
-    title: "Monetize from day one",
-    description: "Paid subscriptions, premium episodes, listener tips, and a sponsorship marketplace.",
-  },
-  {
-    icon: Sparkles,
-    title: "AI clip generator",
-    description: "Turn long episodes into short, social-ready clips with auto-captions in seconds.",
-  },
-  {
-    icon: Globe2,
-    title: "Built for Africa",
-    description: "Mobile-first, low-bandwidth optimized, local payment rails, and multilingual support.",
-  },
+];
+
+const solutions = [
+  { icon: Lightbulb, title: "Strategy & Development", body: "Audience research, positioning, and content roadmap." },
+  { icon: Video, title: "High-Quality Production", body: "Studio-grade audio and video, in-house or on location." },
+  { icon: Share2, title: "Multi-Platform Distribution", body: "One upload, every platform — managed end-to-end." },
+  { icon: Scissors, title: "Content Repurposing", body: "Long-form turned into clips, reels, and articles." },
+  { icon: TrendingUp, title: "Growth Systems", body: "Data-driven playbooks for retention and reach." },
+  { icon: DollarSign, title: "Monetization Support", body: "Subscriptions, sponsorships, and tipping built-in." },
 ];
 
 const steps = [
-  { n: "01", title: "Create your channel", body: "Sign up free, claim your handle, and customize your creator page." },
-  { n: "02", title: "Upload your podcast", body: "Drop in audio or video. We handle hosting, encoding, and distribution." },
-  { n: "03", title: "Grow & monetize", body: "Track unified analytics, connect platforms, and turn listeners into supporters." },
+  { n: "01", title: "Plan Your Podcast", body: "We help define your audience, content, and positioning." },
+  { n: "02", title: "Produce Content", body: "Professional video and audio production." },
+  { n: "03", title: "Distribute Everywhere", body: "Publish across platforms from one system." },
+  { n: "04", title: "Grow Your Audience", body: "Use data, clips, and strategies to scale." },
+  { n: "05", title: "Monetize", body: "Unlock revenue through structured systems." },
 ];
 
-const testimonials = [
-  {
-    quote: "Amplify Africa finally gave me one place to manage my YouTube and Spotify podcast. The analytics alone are worth it.",
-    name: "Wanjiru K.",
-    role: "Host, Nairobi Founders",
-  },
-  {
-    quote: "I doubled my paid subscribers in two months using premium episodes. The creator tools are world-class.",
-    name: "Chinedu O.",
-    role: "Host, Lagos Tea",
-  },
-  {
-    quote: "The AI clips feature is a game changer. My TikTok grew faster than my main feed.",
-    name: "Thandiwe M.",
-    role: "Host, The Real Joburg",
-  },
-];
-
-const platformLogos = [
-  { name: "YouTube", icon: Youtube },
-  { name: "Spotify", icon: Music2 },
-  { name: "Apple Podcasts", icon: Headphones },
+const features = [
+  { icon: Mic2, title: "Podcast Hosting", body: "Video + audio with smart transcoding." },
+  { icon: BarChart3, title: "Unified Analytics", body: "Plays, retention & revenue across every platform." },
+  { icon: Share2, title: "Multi-Platform Sync", body: "YouTube, Spotify, Apple — managed in one place." },
+  { icon: Sparkles, title: "AI Content Repurposing", body: "Auto-generated clips and captions." },
+  { icon: DollarSign, title: "Monetization Tools", body: "Subscriptions, premium episodes, tips." },
+  { icon: Globe2, title: "Creator Profiles", body: "Custom channel pages with subscribers." },
 ];
 
 const Landing = () => {
@@ -86,137 +85,140 @@ const Landing = () => {
     <div className="min-h-screen bg-background">
       <PublicNav />
 
-      {/* Hero */}
+      {/* HERO — iKAMBA-inspired collage */}
       <section className="relative overflow-hidden gradient-hero">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-24 lg:py-32">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-20 lg:py-28">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 border border-accent/30 text-accent text-xs font-semibold uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" /> Now in beta — free for early creators
+              <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                Podcast Hosting & Growth Ecosystem
               </span>
-              <h1 className="mt-6 font-display font-bold text-5xl lg:text-7xl leading-[1.05] tracking-tight text-foreground">
-                The operating system for{" "}
-                <span className="text-accent">African podcasters</span>.
+              <h1 className="mt-5 font-display font-bold text-5xl lg:text-7xl leading-[1.02] tracking-tight text-foreground">
+                Amplifying{" "}
+                <span className="text-accent">African Voices</span>{" "}
+                Through Podcasting.
               </h1>
-              <p className="mt-6 text-lg lg:text-xl text-muted-foreground max-w-xl leading-relaxed">
-                Host video and audio, grow your audience, distribute everywhere, and monetize your content — all from one beautifully simple dashboard.
+              <p className="mt-6 text-lg text-muted-foreground max-w-xl leading-relaxed">
+                A complete podcast production, distribution, and growth ecosystem designed for creators, organizations, and brands across Africa.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-3">
                 <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full font-semibold shadow-gold text-base h-12 px-7">
                   <Link to="/auth">
-                    Start creating free <ArrowRight className="w-4 h-4 ml-1" />
+                    Get Started <ArrowRight className="w-4 h-4 ml-1" />
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline" className="rounded-full font-semibold text-base h-12 px-7 border-border">
-                  <Link to="/discover">
-                    <Play className="w-4 h-4 mr-1" /> Browse podcasts
-                  </Link>
+                  <Link to="/discover">Explore Podcasts</Link>
                 </Button>
-              </div>
-              <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-accent" /> No credit card</span>
-                <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-accent" /> Unlimited uploads</span>
-                <span className="flex items-center gap-1.5"><Check className="w-4 h-4 text-accent" /> Cancel anytime</span>
               </div>
             </motion.div>
 
-            {/* Mock dashboard preview */}
+            {/* Photo collage 3x2 with vertical offset on second row */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, delay: 0.15 }}
-              className="relative"
+              className="relative grid grid-cols-3 gap-3 lg:gap-4"
             >
-              <div className="absolute inset-0 bg-accent/20 rounded-3xl blur-3xl" />
-              <div className="relative rounded-3xl bg-card border border-border/60 shadow-soft overflow-hidden">
-                <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between">
-                  <div className="flex gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-full bg-destructive/60" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-accent/60" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-success/60" />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground font-mono">amplify.africa/dashboard</span>
+              {heroImages.map((src, i) => (
+                <div
+                  key={src}
+                  className={`overflow-hidden rounded-2xl border border-border/60 shadow-soft ${
+                    i % 2 === 1 ? "mt-6 lg:mt-10" : ""
+                  }`}
+                >
+                  <img
+                    src={src}
+                    alt=""
+                    loading="lazy"
+                    className="w-full h-full object-cover aspect-[3/4]"
+                  />
                 </div>
-                <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { label: "Total plays", value: "248K", trend: "+18%" },
-                      { label: "Subscribers", value: "12.4K", trend: "+24%" },
-                      { label: "Revenue", value: "$3.2K", trend: "+31%" },
-                    ].map((stat) => (
-                      <div key={stat.label} className="rounded-xl bg-secondary/60 p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-                        <p className="mt-1 text-xl font-display font-bold text-foreground">{stat.value}</p>
-                        <p className="text-[10px] text-success font-semibold">{stat.trend}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="rounded-xl bg-secondary/60 p-4">
-                    <div className="flex items-end justify-between h-24 gap-1.5">
-                      {[35, 55, 42, 70, 58, 88, 75, 95, 82, 100, 90, 78].map((h, i) => (
-                        <div
-                          key={i}
-                          className="flex-1 rounded-t-md bg-gradient-to-t from-accent/40 to-accent"
-                          style={{ height: `${h}%` }}
-                        />
-                      ))}
-                    </div>
-                    <p className="mt-2 text-[10px] text-muted-foreground">Plays — last 12 weeks</p>
-                  </div>
-                  <div className="flex items-center gap-3 rounded-xl bg-secondary/60 p-3">
-                    <div className="w-10 h-10 rounded-lg gradient-gold flex items-center justify-center shrink-0">
-                      <Mic2 className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">Episode 24 — Building in Lagos</p>
-                      <p className="text-[10px] text-muted-foreground">Published yesterday · 12.4K plays</p>
-                    </div>
-                    <button className="w-8 h-8 rounded-full bg-accent flex items-center justify-center">
-                      <Play className="w-3.5 h-3.5 text-primary fill-primary ml-0.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
+              ))}
             </motion.div>
           </div>
 
-          {/* Platform logos */}
+          {/* Trusted strip / carousel */}
           <div className="mt-20 lg:mt-28">
-            <p className="text-center text-xs uppercase tracking-[0.2em] text-muted-foreground mb-6">
+            <p className="text-center text-xs uppercase tracking-[0.22em] text-muted-foreground mb-8">
               Distribute everywhere your audience listens
             </p>
-            <div className="flex items-center justify-center flex-wrap gap-x-12 gap-y-6 opacity-70">
-              {platformLogos.map((p) => (
-                <div key={p.name} className="flex items-center gap-2 text-foreground">
-                  <p.icon className="w-5 h-5" />
-                  <span className="font-semibold text-sm">{p.name}</span>
-                </div>
-              ))}
+            <div className="relative overflow-hidden">
+              <div className="flex gap-12 animate-[scroll_30s_linear_infinite] whitespace-nowrap">
+                {[...partnerLogos, ...partnerLogos, ...partnerLogos].map((p, i) => (
+                  <span key={i} className="text-foreground/70 font-display font-semibold text-xl shrink-0">
+                    {p}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="py-24 lg:py-32 border-t border-border/40">
+      {/* WHAT IS AMPLIFY AFRICA */}
+      <section className="py-24 lg:py-32 border-t border-border/40">
+        <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">About Amplify Africa</span>
+          <h2 className="mt-4 font-display font-bold text-4xl lg:text-5xl tracking-tight text-foreground">
+            More Than a <span className="text-accent">Podcast Platform</span>.
+          </h2>
+          <p className="mt-6 text-lg text-muted-foreground leading-relaxed">
+            Amplify Africa is a media and content infrastructure initiative designed to support African creators, organizations, and thought leaders in building, growing, and monetizing impactful podcasts.
+          </p>
+          <p className="mt-4 text-lg text-muted-foreground leading-relaxed">
+            Powered by <span className="text-accent font-semibold">iKAMBA</span>, Amplify Africa combines production expertise, strategic guidance, and technology to deliver a complete podcast ecosystem.
+          </p>
+        </div>
+      </section>
+
+      {/* THE PROBLEM */}
+      <section className="py-24 lg:py-32 border-t border-border/40 bg-secondary/20">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="font-display font-bold text-4xl lg:text-5xl tracking-tight text-foreground">
-              Everything you need to run a <span className="text-accent">world-class podcast</span>.
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">The Challenge</span>
+            <h2 className="mt-4 font-display font-bold text-4xl lg:text-5xl tracking-tight text-foreground">
+              The Challenge in <span className="text-accent">African Podcasting</span>.
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Stop juggling six tools. Amplify replaces your host, your analytics, your monetization, and your distribution.
-            </p>
           </div>
+          <div className="grid md:grid-cols-3 gap-5">
+            {problems.map((p) => (
+              <div key={p.title} className="rounded-2xl bg-card border border-border/60 p-7">
+                <div className="w-12 h-12 rounded-xl bg-destructive/10 border border-destructive/30 flex items-center justify-center mb-5">
+                  <p.icon className="w-5 h-5 text-destructive" />
+                </div>
+                <h3 className="font-display font-bold text-2xl text-foreground mb-4">{p.title}</h3>
+                <ul className="space-y-2">
+                  {p.bullets.map((b) => (
+                    <li key={b} className="flex gap-2 text-sm text-muted-foreground">
+                      <span className="text-destructive mt-1">•</span> {b}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
+      {/* OUR SOLUTION */}
+      <section className="py-24 lg:py-32 border-t border-border/40">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Our Solution</span>
+            <h2 className="mt-4 font-display font-bold text-4xl lg:text-5xl tracking-tight text-foreground">
+              A Complete <span className="text-accent">Podcast Ecosystem</span>.
+            </h2>
+          </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {features.map((f, i) => (
+            {solutions.map((s, i) => (
               <motion.div
-                key={f.title}
+                key={s.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
@@ -224,57 +226,101 @@ const Landing = () => {
                 className="rounded-2xl bg-card border border-border/60 p-6 hover:border-accent/40 transition-colors"
               >
                 <div className="w-11 h-11 rounded-xl gradient-gold flex items-center justify-center mb-5">
-                  <f.icon className="w-5 h-5 text-primary" />
+                  <s.icon className="w-5 h-5 text-primary" />
                 </div>
-                <h3 className="font-display font-bold text-xl text-foreground mb-2">{f.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{f.description}</p>
+                <h3 className="font-display font-bold text-xl text-foreground mb-2">{s.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{s.body}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section id="how-it-works" className="py-24 lg:py-32 border-t border-border/40 bg-secondary/20">
+      {/* HOW IT WORKS — 5 steps */}
+      <section className="py-24 lg:py-32 border-t border-border/40 bg-secondary/20">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="font-display font-bold text-4xl lg:text-5xl tracking-tight text-foreground">
-              From idea to audience in <span className="text-accent">three steps</span>.
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">How It Works</span>
+            <h2 className="mt-4 font-display font-bold text-4xl lg:text-5xl tracking-tight text-foreground">
+              From idea to audience in <span className="text-accent">five steps</span>.
             </h2>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
             {steps.map((s) => (
-              <div key={s.n} className="rounded-2xl bg-card border border-border/60 p-8">
-                <span className="font-display font-bold text-5xl text-accent/30">{s.n}</span>
-                <h3 className="mt-4 font-display font-bold text-2xl text-foreground">{s.title}</h3>
-                <p className="mt-2 text-muted-foreground leading-relaxed">{s.body}</p>
+              <div key={s.n} className="rounded-2xl bg-card border border-border/60 p-6">
+                <span className="font-display font-bold text-4xl text-accent/30">{s.n}</span>
+                <h3 className="mt-3 font-display font-bold text-lg text-foreground">{s.title}</h3>
+                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{s.body}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-10 text-center">
+            <Button asChild variant="outline" className="rounded-full">
+              <Link to="/how-it-works">See the full journey <ArrowRight className="w-4 h-4 ml-1" /></Link>
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* WHO IT'S FOR */}
       <section className="py-24 lg:py-32 border-t border-border/40">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="font-display font-bold text-4xl lg:text-5xl tracking-tight text-foreground">
-              Loved by African creators.
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Who It's For</span>
+            <h2 className="mt-4 font-display font-bold text-4xl lg:text-5xl tracking-tight text-foreground">
+              Built for storytellers <span className="text-accent">and brands</span>.
             </h2>
           </div>
-          <div className="grid md:grid-cols-3 gap-5">
-            {testimonials.map((t) => (
-              <div key={t.name} className="rounded-2xl bg-card border border-border/60 p-7">
-                <div className="flex gap-0.5 mb-4">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <span key={i} className="text-accent text-base">★</span>
-                  ))}
+          <div className="grid md:grid-cols-2 gap-5">
+            <div className="rounded-3xl bg-card border border-border/60 p-8 lg:p-10">
+              <div className="w-12 h-12 rounded-xl gradient-gold flex items-center justify-center mb-5">
+                <Users className="w-5 h-5 text-primary" />
+              </div>
+              <h3 className="font-display font-bold text-2xl text-foreground mb-4">Creators & Influencers</h3>
+              <ul className="space-y-2 text-muted-foreground">
+                <li>• Independent podcasters</li>
+                <li>• Media personalities</li>
+                <li>• Content creators & influencers</li>
+              </ul>
+              <Button asChild variant="link" className="mt-4 p-0 text-accent">
+                <Link to="/for-creators">For Creators →</Link>
+              </Button>
+            </div>
+            <div className="rounded-3xl bg-card border border-border/60 p-8 lg:p-10">
+              <div className="w-12 h-12 rounded-xl bg-secondary border border-border flex items-center justify-center mb-5">
+                <Building2 className="w-5 h-5 text-foreground" />
+              </div>
+              <h3 className="font-display font-bold text-2xl text-foreground mb-4">Organizations & Brands</h3>
+              <ul className="space-y-2 text-muted-foreground">
+                <li>• NGOs & non-profits</li>
+                <li>• Corporate brands</li>
+                <li>• Thought leaders & executives</li>
+              </ul>
+              <Button asChild variant="link" className="mt-4 p-0 text-accent">
+                <Link to="/for-organizations">For Organizations →</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PLATFORM FEATURES */}
+      <section id="features" className="py-24 lg:py-32 border-t border-border/40 bg-secondary/20">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Platform Features</span>
+            <h2 className="mt-4 font-display font-bold text-4xl lg:text-5xl tracking-tight text-foreground">
+              Everything in <span className="text-accent">one dashboard</span>.
+            </h2>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {features.map((f) => (
+              <div key={f.title} className="rounded-2xl bg-card border border-border/60 p-6 hover:border-accent/40 transition-colors">
+                <div className="w-11 h-11 rounded-xl gradient-gold flex items-center justify-center mb-5">
+                  <f.icon className="w-5 h-5 text-primary" />
                 </div>
-                <p className="text-foreground leading-relaxed">"{t.quote}"</p>
-                <div className="mt-5 pt-5 border-t border-border/60">
-                  <p className="font-semibold text-foreground text-sm">{t.name}</p>
-                  <p className="text-xs text-muted-foreground">{t.role}</p>
-                </div>
+                <h3 className="font-display font-bold text-xl text-foreground mb-2">{f.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{f.body}</p>
               </div>
             ))}
           </div>
@@ -290,17 +336,21 @@ const Landing = () => {
               <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full bg-primary blur-3xl" />
             </div>
             <div className="relative">
+              <Megaphone className="w-10 h-10 text-primary mx-auto mb-4" />
               <h2 className="font-display font-bold text-4xl lg:text-5xl tracking-tight text-primary">
-                Ready to amplify your voice?
+                Start Building Your Podcast Today.
               </h2>
               <p className="mt-4 text-primary/80 text-lg max-w-xl mx-auto">
-                Join the next generation of African podcasters. Free to start, no credit card required.
+                Join the next generation of African podcasters. Free to start, with expert support every step of the way.
               </p>
-              <Button asChild size="lg" className="mt-8 bg-primary text-primary-foreground hover:bg-primary/90 rounded-full font-semibold text-base h-12 px-8">
-                <Link to="/auth">
-                  Create your channel <ArrowRight className="w-4 h-4 ml-1" />
-                </Link>
-              </Button>
+              <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+                <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full font-semibold text-base h-12 px-8">
+                  <Link to="/auth">Create Account <ArrowRight className="w-4 h-4 ml-1" /></Link>
+                </Button>
+                <Button asChild size="lg" variant="outline" className="rounded-full font-semibold text-base h-12 px-8 bg-transparent border-primary/40 text-primary hover:bg-primary/10">
+                  <Link to="/contact">Book a Consultation</Link>
+                </Button>
+              </div>
             </div>
           </div>
         </div>
