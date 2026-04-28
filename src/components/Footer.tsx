@@ -57,7 +57,7 @@ export function Footer() {
         </div>
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pt-8 border-t border-border/40">
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Amplify Africa. All rights reserved.
+            © {new Date().getFullYear()} Resona Africa. All rights reserved.
           </p>
           <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
             Powered by <span className="text-accent font-semibold">iKAMBA</span>
