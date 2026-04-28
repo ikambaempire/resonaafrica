@@ -56,7 +56,7 @@ const Auth = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Account created! Welcome to Amplify Africa.");
+      toast.success("Account created! Welcome to Resona Africa.");
       navigate("/dashboard/overview");
     }
   };

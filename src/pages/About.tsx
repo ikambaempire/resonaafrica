@@ -12,14 +12,14 @@ export default function About() {
     <PageShell>
       <PageHero
         eyebrow="About Us"
-        title={<>About <span className="text-accent">Amplify Africa</span>.</>}
+        title={<>About <span className="text-accent">Resona Africa</span>.</>}
         subtitle="A podcast production and growth initiative powered by iKAMBA, built to amplify African voices at scale."
         image="https://images.unsplash.com/photo-1559136555-9303baea8ebd?w=1200&q=80"
       />
       <section className="py-20 lg:py-28">
         <div className="max-w-3xl mx-auto px-6 lg:px-8 space-y-6 text-lg text-muted-foreground leading-relaxed">
           <p>
-            Amplify Africa was created to address the fragmentation in the African podcast ecosystem by providing a structured, end-to-end solution for creators and organizations.
+            Resona Africa was created to address the fragmentation in the African podcast ecosystem by providing a structured, end-to-end solution for creators and organizations.
           </p>
           <p>
             We believe podcasting is one of the most powerful tools for storytelling, education, and influence across Africa.
