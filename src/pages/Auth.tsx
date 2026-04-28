@@ -57,7 +57,7 @@ const Auth = () => {
       toast.error(error.message);
     } else {
       toast.success("Account created! Welcome to Resona Africa.");
-      // (no-op)
+
       navigate("/dashboard/overview");
     }
   };
