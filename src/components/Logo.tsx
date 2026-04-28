@@ -16,10 +16,10 @@ export function Logo({ size = "md", className = "", showPoweredBy = false }: Log
   const s = sizes[size];
   return (
     <span className={`inline-flex items-center gap-2 ${className}`}>
-      <img src={logoGlyph} alt="Amplify Africa" className={`${s.glyph} object-contain`} />
+      <img src={logoGlyph} alt="Resona Africa" className={`${s.glyph} object-contain`} />
       <span className="flex flex-col leading-none">
         <span className={`font-display font-bold text-foreground tracking-tight ${s.text}`}>
-          Amplify <span className="text-accent">Africa</span>
+          Resona <span className="text-accent">Africa</span>
         </span>
         {showPoweredBy && (
           <span className={`mt-1 font-medium uppercase tracking-[0.18em] text-muted-foreground ${s.powered}`}>

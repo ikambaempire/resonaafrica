@@ -7,7 +7,9 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AdminRoute } from "@/components/AdminRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { AdminLayout } from "@/components/layout/AdminLayout";
 
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
@@ -28,6 +30,14 @@ import Scheduler from "./pages/dashboard/Scheduler";
 import Integrations from "./pages/dashboard/Integrations";
 import AIClips from "./pages/dashboard/AIClips";
 import SettingsPage from "./pages/dashboard/SettingsPage";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminRoles from "./pages/admin/AdminRoles";
+import AdminPodcasts from "./pages/admin/AdminPodcasts";
+import AdminRevenue from "./pages/admin/AdminRevenue";
+import AdminAnnouncements from "./pages/admin/AdminAnnouncements";
+import AdminReports from "./pages/admin/AdminReports";
+import AdminSettings from "./pages/admin/AdminSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,7 +52,7 @@ function ScrollToTop() {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="amplify-theme">
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="resona-theme">
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
@@ -63,7 +73,7 @@ const App = () => (
               <Route path="/roadmap" element={<Roadmap />} />
               <Route path="/contact" element={<Contact />} />
 
-              {/* Dashboard (protected) */}
+              {/* Creator dashboard */}
               <Route path="/dashboard" element={<Navigate to="/dashboard/overview" replace />} />
               <Route path="/dashboard/*" element={
                 <ProtectedRoute>
@@ -80,6 +90,24 @@ const App = () => (
                     </Routes>
                   </DashboardLayout>
                 </ProtectedRoute>
+              } />
+
+              {/* Admin console */}
+              <Route path="/admin/*" element={
+                <AdminRoute>
+                  <AdminLayout>
+                    <Routes>
+                      <Route index element={<AdminOverview />} />
+                      <Route path="users" element={<AdminUsers />} />
+                      <Route path="roles" element={<AdminRoles />} />
+                      <Route path="podcasts" element={<AdminPodcasts />} />
+                      <Route path="revenue" element={<AdminRevenue />} />
+                      <Route path="announcements" element={<AdminAnnouncements />} />
+                      <Route path="reports" element={<AdminReports />} />
+                      <Route path="settings" element={<AdminSettings />} />
+                    </Routes>
+                  </AdminLayout>
+                </AdminRoute>
               } />
 
               <Route path="*" element={<NotFound />} />

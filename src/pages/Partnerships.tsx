@@ -22,7 +22,7 @@ export default function Partnerships() {
       <PageHero
         eyebrow="Partnerships"
         title={<>Building the future of African media <span className="text-accent">together</span>.</>}
-        subtitle="Amplify Africa thrives on collaboration. We partner with creators, studios, brands, and platforms to grow the ecosystem."
+        subtitle="Resona Africa thrives on collaboration. We partner with creators, studios, brands, and platforms to grow the ecosystem."
       />
       <section className="py-20 lg:py-28">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">

@@ -5,7 +5,7 @@ export default function Analytics() {
   return (
     <ComingSoon
       title="Analytics"
-      description="Unified plays, retention, and growth across YouTube, Spotify, and Amplify."
+      description="Unified plays, retention, and growth across YouTube, Spotify, and Resona."
       icon={<BarChart3 className="w-7 h-7 text-primary" />}
     />
   );

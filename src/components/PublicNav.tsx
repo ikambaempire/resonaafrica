@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +21,7 @@ const solutions = [
 
 export function PublicNav() {
   const { user } = useAuth();
+  const { data: isAdmin } = useIsAdmin();
   const [open, setOpen] = useState(false);
 
   return (
@@ -51,9 +53,16 @@ export function PublicNav() {
 
         <div className="flex items-center gap-2">
           {user ? (
-            <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full font-semibold">
-              <Link to="/dashboard/overview">Dashboard</Link>
-            </Button>
+            <>
+              {isAdmin && (
+                <Button asChild variant="outline" className="rounded-full font-semibold hidden sm:inline-flex border-accent/50 text-accent hover:bg-accent/10">
+                  <Link to="/admin">Admin</Link>
+                </Button>
+              )}
+              <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full font-semibold">
+                <Link to="/dashboard/overview">Dashboard</Link>
+              </Button>
+            </>
           ) : (
             <>
               <Button variant="ghost" asChild className="rounded-full hidden sm:inline-flex">
