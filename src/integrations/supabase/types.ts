@@ -14,6 +14,288 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          audience: string
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          published_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: string
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          published_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          published_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bookmarks: {
+        Row: {
+          created_at: string
+          episode_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          episode_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          episode_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmarks_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      episode_plays: {
+        Row: {
+          anon_id: string | null
+          created_at: string
+          episode_id: string
+          id: string
+          listened_seconds: number
+          podcast_id: string
+          source: string | null
+          user_id: string | null
+        }
+        Insert: {
+          anon_id?: string | null
+          created_at?: string
+          episode_id: string
+          id?: string
+          listened_seconds?: number
+          podcast_id: string
+          source?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          anon_id?: string | null
+          created_at?: string
+          episode_id?: string
+          id?: string
+          listened_seconds?: number
+          podcast_id?: string
+          source?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "episode_plays_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "episode_plays_podcast_id_fkey"
+            columns: ["podcast_id"]
+            isOneToOne: false
+            referencedRelation: "podcasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      episodes: {
+        Row: {
+          ai_clips: Json | null
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          duration_seconds: number | null
+          embed_provider: Database["public"]["Enums"]["embed_provider"] | null
+          embed_url: string | null
+          hosting: Database["public"]["Enums"]["hosting_type"]
+          id: string
+          is_premium: boolean
+          media_kind: string | null
+          media_url: string | null
+          owner_id: string
+          podcast_id: string
+          published_at: string | null
+          scheduled_at: string | null
+          slug: string
+          status: Database["public"]["Enums"]["episode_status"]
+          title: string
+          transcript: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_clips?: Json | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          embed_provider?: Database["public"]["Enums"]["embed_provider"] | null
+          embed_url?: string | null
+          hosting?: Database["public"]["Enums"]["hosting_type"]
+          id?: string
+          is_premium?: boolean
+          media_kind?: string | null
+          media_url?: string | null
+          owner_id: string
+          podcast_id: string
+          published_at?: string | null
+          scheduled_at?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["episode_status"]
+          title: string
+          transcript?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_clips?: Json | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_seconds?: number | null
+          embed_provider?: Database["public"]["Enums"]["embed_provider"] | null
+          embed_url?: string | null
+          hosting?: Database["public"]["Enums"]["hosting_type"]
+          id?: string
+          is_premium?: boolean
+          media_kind?: string | null
+          media_url?: string | null
+          owner_id?: string
+          podcast_id?: string
+          published_at?: string | null
+          scheduled_at?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["episode_status"]
+          title?: string
+          transcript?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "episodes_podcast_id_fkey"
+            columns: ["podcast_id"]
+            isOneToOne: false
+            referencedRelation: "podcasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      podcasts: {
+        Row: {
+          category: string | null
+          cover_url: string | null
+          created_at: string
+          description: string | null
+          explicit: boolean
+          id: string
+          is_published: boolean
+          language: string | null
+          owner_id: string
+          slug: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          explicit?: boolean
+          id?: string
+          is_published?: boolean
+          language?: string | null
+          owner_id: string
+          slug: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          cover_url?: string | null
+          created_at?: string
+          description?: string | null
+          explicit?: boolean
+          id?: string
+          is_published?: boolean
+          language?: string | null
+          owner_id?: string
+          slug?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      premium_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          id: string
+          podcast_id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          podcast_id: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          id?: string
+          podcast_id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "premium_subscriptions_podcast_id_fkey"
+            columns: ["podcast_id"]
+            isOneToOne: false
+            referencedRelation: "podcasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -53,6 +335,63 @@ export type Database = {
         }
         Relationships: []
       }
+      tips: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          episode_id: string | null
+          id: string
+          message: string | null
+          podcast_id: string
+          status: string
+          stripe_session_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          episode_id?: string | null
+          id?: string
+          message?: string | null
+          podcast_id: string
+          status?: string
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          episode_id?: string | null
+          id?: string
+          message?: string | null
+          podcast_id?: string
+          status?: string
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tips_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tips_podcast_id_fkey"
+            columns: ["podcast_id"]
+            isOneToOne: false
+            referencedRelation: "podcasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -71,11 +410,44 @@ export type Database = {
         }
         Relationships: []
       }
+      watch_later: {
+        Row: {
+          created_at: string
+          episode_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          episode_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          episode_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "watch_later_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: false
+            referencedRelation: "episodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      has_active_premium: {
+        Args: { _podcast_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -87,6 +459,9 @@ export type Database = {
     Enums: {
       app_role: "admin" | "editor" | "viewer" | "creator"
       email_template_type: "confirmation" | "reminder" | "followup"
+      embed_provider: "youtube" | "spotify" | "apple" | "soundcloud" | "other"
+      episode_status: "draft" | "scheduled" | "published"
+      hosting_type: "native" | "embed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -216,6 +591,9 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "editor", "viewer", "creator"],
       email_template_type: ["confirmation", "reminder", "followup"],
+      embed_provider: ["youtube", "spotify", "apple", "soundcloud", "other"],
+      episode_status: ["draft", "scheduled", "published"],
+      hosting_type: ["native", "embed"],
     },
   },
 } as const
