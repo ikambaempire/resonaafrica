@@ -28,7 +28,7 @@ export default function AIClips() {
     } finally { setLoading(false); }
   };
 
-  const clips: Clip[] = (ep?.ai_clips as Clip[]) || [];
+  const clips: Clip[] = Array.isArray(ep?.ai_clips) ? (ep!.ai_clips as unknown as Clip[]) : [];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
