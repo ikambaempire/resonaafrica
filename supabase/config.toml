@@ -1,1 +1,4 @@
 project_id = "boktqzhixhjdxhhirfrx"
+
+[functions.publish-scheduled-episodes]
+verify_jwt = false
