@@ -14,15 +14,19 @@ import {
   Puzzle,
   Settings,
   LogOut,
+  Bookmark,
+  Clock,
 } from "lucide-react";
 
 const navItems = [
   { title: "Overview", url: "/dashboard/overview", icon: LayoutDashboard },
   { title: "Content", url: "/dashboard/content", icon: Mic2 },
   { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3 },
-  { title: "Monetization", url: "/dashboard/monetization", icon: DollarSign },
   { title: "Scheduler", url: "/dashboard/scheduler", icon: Calendar },
   { title: "AI Clips", url: "/dashboard/ai-clips", icon: Sparkles },
+  { title: "Monetization", url: "/dashboard/monetization", icon: DollarSign },
+  { title: "Bookmarks", url: "/dashboard/bookmarks", icon: Bookmark },
+  { title: "Watch later", url: "/dashboard/watch-later", icon: Clock },
   { title: "Integrations", url: "/dashboard/integrations", icon: Puzzle },
   { title: "Settings", url: "/dashboard/settings", icon: Settings },
 ];

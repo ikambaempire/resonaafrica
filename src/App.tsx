@@ -14,6 +14,7 @@ import { AdminLayout } from "@/components/layout/AdminLayout";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Discover from "./pages/Discover";
+import ChannelPage from "./pages/ChannelPage";
 import About from "./pages/About";
 import Services from "./pages/Services";
 import HowItWorks from "./pages/HowItWorks";
@@ -30,6 +31,7 @@ import Scheduler from "./pages/dashboard/Scheduler";
 import Integrations from "./pages/dashboard/Integrations";
 import AIClips from "./pages/dashboard/AIClips";
 import SettingsPage from "./pages/dashboard/SettingsPage";
+import Bookmarks, { WatchLaterPage } from "./pages/dashboard/Library";
 import AdminOverview from "./pages/admin/AdminOverview";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminRoles from "./pages/admin/AdminRoles";
@@ -64,6 +66,7 @@ const App = () => (
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/discover" element={<Discover />} />
+              <Route path="/c/:slug" element={<ChannelPage />} />
               <Route path="/about" element={<About />} />
               <Route path="/services" element={<Services />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
@@ -85,6 +88,8 @@ const App = () => (
                       <Route path="monetization" element={<Monetization />} />
                       <Route path="scheduler" element={<Scheduler />} />
                       <Route path="ai-clips" element={<AIClips />} />
+                      <Route path="bookmarks" element={<Bookmarks />} />
+                      <Route path="watch-later" element={<WatchLaterPage />} />
                       <Route path="integrations" element={<Integrations />} />
                       <Route path="settings" element={<SettingsPage />} />
                     </Routes>
