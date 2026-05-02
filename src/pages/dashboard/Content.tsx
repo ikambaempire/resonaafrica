@@ -273,6 +273,8 @@ function EpisodeDialog({ userId, podcastId, editing, onClose }: { userId: string
   const [mediaKind, setMediaKind] = useState(editing?.media_kind || "audio");
   const [embedProvider, setEmbedProvider] = useState<string>(editing?.embed_provider || "youtube");
   const [embedUrl, setEmbedUrl] = useState(editing?.embed_url || "");
+  const [coverUrl, setCoverUrl] = useState(editing?.cover_url || "");
+  const [coverUploading, setCoverUploading] = useState(false);
   const [isPremium, setIsPremium] = useState(editing?.is_premium || false);
   const [status, setStatus] = useState<"draft" | "scheduled" | "published">((editing?.status as "draft" | "scheduled" | "published") || "draft");
   const [scheduledAt, setScheduledAt] = useState(editing?.scheduled_at ? new Date(editing.scheduled_at).toISOString().slice(0, 16) : "");
@@ -293,8 +295,20 @@ function EpisodeDialog({ userId, podcastId, editing, onClose }: { userId: string
     toast.success("Upload complete");
   };
 
+  const onCoverUpload = async (file: File) => {
+    setCoverUploading(true);
+    const path = `${userId}/${podcastId}/thumb-${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
+    const { error } = await supabase.storage.from("podcast-covers").upload(path, file, { upsert: false, contentType: file.type });
+    if (error) { toast.error(error.message); setCoverUploading(false); return; }
+    const { data } = supabase.storage.from("podcast-covers").getPublicUrl(path);
+    setCoverUrl(data.publicUrl);
+    setCoverUploading(false);
+  };
+
   const submit = async () => {
     if (!title.trim()) { toast.error("Title required"); return; }
+    if (hosting === "embed" && !embedUrl.trim()) { toast.error("Paste a YouTube/Spotify URL"); return; }
+    if (hosting === "native" && !mediaUrl.trim()) { toast.error("Upload an audio or video file"); return; }
     setSaving(true);
     const finalSlug = slug.trim() || slugify(title);
     const payload = {
@@ -304,6 +318,7 @@ function EpisodeDialog({ userId, podcastId, editing, onClose }: { userId: string
       slug: finalSlug,
       description,
       hosting,
+      cover_url: coverUrl || null,
       media_url: hosting === "native" ? mediaUrl || null : null,
       media_kind: hosting === "native" ? mediaKind : null,
       embed_provider: hosting === "embed" ? (embedProvider as "youtube" | "spotify" | "apple" | "soundcloud" | "other") : null,
