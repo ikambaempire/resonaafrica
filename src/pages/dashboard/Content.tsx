@@ -232,7 +232,15 @@ function PodcastDialog({ userId, editing, onClose }: { userId: string; editing?:
           </div>
           <div>
             <Label>Category</Label>
-            <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Business, Storytelling" />
+            <Select value={category || undefined} onValueChange={setCategory}>
+              <SelectTrigger><SelectValue placeholder="Pick a category" /></SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c.slug} value={c.slug}>{c.emoji} {c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">Helps listeners discover your show on the Discover page.</p>
           </div>
           <div>
             <Label>Cover image</Label>
