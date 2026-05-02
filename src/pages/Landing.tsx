@@ -22,10 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PublicNav } from "@/components/PublicNav";
 import { Footer } from "@/components/Footer";
-import heroResona from "@/assets/hero-resona.png";
-import heroIkamba from "@/assets/hero-ikamba.jpg";
-
-const heroSlides = [heroResona, heroIkamba];
+import heroBg from "@/assets/hero-resona-bg.png";
 
 const partnerLogos = [
   "Spotify", "YouTube", "Apple Podcasts", "Audiomack", "Anchor", "Google Podcasts",
@@ -85,39 +82,7 @@ const testimonials = [
   { quote: "We finally have one dashboard for analytics across every platform.", name: "Zainab M.", role: "Brand lead, Nairobi" },
 ];
 
-const HeroCarousel = () => {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setI((x) => (x + 1) % heroSlides.length), 5500);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <div className="relative aspect-[4/5] lg:aspect-[3/4] w-full rounded-3xl overflow-hidden border border-border/60 shadow-soft bg-card">
-      <AnimatePresence mode="wait">
-        <motion.img
-          key={i}
-          src={heroSlides[i]}
-          alt="Resona Africa"
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.9, ease: "easeOut" }}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      </AnimatePresence>
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-        {heroSlides.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => setI(idx)}
-            aria-label={`Slide ${idx + 1}`}
-            className={`h-1.5 rounded-full transition-all ${idx === i ? "w-8 bg-accent" : "w-1.5 bg-foreground/40"}`}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
+// Hero now uses a single background image (no carousel).
 
 const Landing = () => {
   return (
