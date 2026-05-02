@@ -1,4 +1,4 @@
-// Generates a transcript-like outline + 3 short-clip suggestions for an episode using Lovable AI Gateway.
+// Generates a timestamped transcript outline + 3-5 short-clip suggestions with start/end seconds.
 // Owner-only. Updates episodes.transcript and episodes.ai_clips.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
@@ -31,13 +31,18 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) return json({ error: "LOVABLE_API_KEY missing" }, 500);
 
-    const prompt = `You are an assistant for podcast creators. Based on this episode title and description, produce a JSON object with two keys:
-- "transcript_outline": a 6-10 line outline (one bullet per line) capturing the likely narrative arc.
-- "clips": an array of 3 short-clip suggestions, each with "title" (max 60 chars), "hook" (one sentence), "suggested_duration_seconds" (15-90).
-Return ONLY valid JSON.
+    const durationSec = Math.max(60, Number(ep.duration_seconds) || 1800); // default 30 min
+    const prompt = `You are an assistant for podcast creators. Based on this episode, produce a transcript-style chapter outline with timestamps and 4 viral short-clip ideas with timestamps.
 
 Episode title: ${ep.title}
-Description: ${ep.description ?? "(none)"}`;
+Description: ${ep.description ?? "(none)"}
+Total estimated duration (seconds): ${durationSec}
+
+Rules:
+- Distribute timestamps across the FULL duration (do not bunch them at the start).
+- All timestamps must be integer seconds, 0 <= t <= ${durationSec}.
+- Clip duration (end - start) must be 20-90 seconds.
+- Return ONLY valid JSON via the tool call.`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -45,35 +50,79 @@ Description: ${ep.description ?? "(none)"}`;
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "You return only valid JSON." },
+          { role: "system", content: "You return only structured tool calls." },
           { role: "user", content: prompt },
         ],
+        tools: [{
+          type: "function",
+          function: {
+            name: "build_clips",
+            description: "Return chapter outline + clip suggestions with timestamps.",
+            parameters: {
+              type: "object",
+              properties: {
+                chapters: {
+                  type: "array",
+                  description: "6-10 chapter markers spanning the episode.",
+                  items: {
+                    type: "object",
+                    properties: {
+                      timestamp_seconds: { type: "number" },
+                      title: { type: "string" },
+                      summary: { type: "string" },
+                    },
+                    required: ["timestamp_seconds", "title", "summary"],
+                  },
+                },
+                clips: {
+                  type: "array",
+                  description: "4 short viral clip suggestions.",
+                  items: {
+                    type: "object",
+                    properties: {
+                      title: { type: "string" },
+                      hook: { type: "string" },
+                      start_seconds: { type: "number" },
+                      end_seconds: { type: "number" },
+                    },
+                    required: ["title", "hook", "start_seconds", "end_seconds"],
+                  },
+                },
+              },
+              required: ["chapters", "clips"],
+            },
+          },
+        }],
+        tool_choice: { type: "function", function: { name: "build_clips" } },
       }),
     });
     if (!aiRes.ok) {
+      if (aiRes.status === 429) return json({ error: "Rate limit reached, try again in a moment." }, 429);
+      if (aiRes.status === 402) return json({ error: "AI credits exhausted. Add credits in Workspace > Usage." }, 402);
       const t = await aiRes.text();
       return json({ error: `AI gateway error: ${aiRes.status}`, detail: t }, 500);
     }
     const aiJson = await aiRes.json();
-    const content: string = aiJson.choices?.[0]?.message?.content ?? "{}";
-    const cleaned = content.replace(/^```json\s*|\s*```$/g, "").trim();
-    let parsed: { transcript_outline?: string; clips?: unknown[] } = {};
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch {
-      parsed = { transcript_outline: content, clips: [] };
-    }
+    const args = aiJson.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments ?? "{}";
+    let parsed: { chapters?: { timestamp_seconds: number; title: string; summary: string }[]; clips?: { title: string; hook: string; start_seconds: number; end_seconds: number }[] } = {};
+    try { parsed = typeof args === "string" ? JSON.parse(args) : args; } catch { parsed = {}; }
+
+    const transcriptText = (parsed.chapters || []).map((c) => {
+      const m = Math.floor(c.timestamp_seconds / 60);
+      const s = Math.floor(c.timestamp_seconds % 60).toString().padStart(2, "0");
+      return `[${m}:${s}] ${c.title} — ${c.summary}`;
+    }).join("\n");
 
     const { error: updErr } = await supabase
       .from("episodes")
       .update({
-        transcript: parsed.transcript_outline ?? ep.transcript,
+        transcript: transcriptText || ep.transcript,
         ai_clips: parsed.clips ?? [],
       })
       .eq("id", episodeId);
     if (updErr) return json({ error: updErr.message }, 500);
 
-    return json({ ok: true, transcript: parsed.transcript_outline, clips: parsed.clips });
+    return json({ ok: true, transcript: transcriptText, chapters: parsed.chapters, clips: parsed.clips });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
   }

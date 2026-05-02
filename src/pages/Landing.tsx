@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Mic2,
   TrendingUp,
@@ -22,10 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PublicNav } from "@/components/PublicNav";
 import { Footer } from "@/components/Footer";
-import heroResona from "@/assets/hero-resona.png";
-import heroIkamba from "@/assets/hero-ikamba.jpg";
-
-const heroSlides = [heroResona, heroIkamba];
+import heroBg from "@/assets/hero-resona-bg.png";
 
 const partnerLogos = [
   "Spotify", "YouTube", "Apple Podcasts", "Audiomack", "Anchor", "Google Podcasts",
@@ -85,83 +81,47 @@ const testimonials = [
   { quote: "We finally have one dashboard for analytics across every platform.", name: "Zainab M.", role: "Brand lead, Nairobi" },
 ];
 
-const HeroCarousel = () => {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setI((x) => (x + 1) % heroSlides.length), 5500);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <div className="relative aspect-[4/5] lg:aspect-[3/4] w-full rounded-3xl overflow-hidden border border-border/60 shadow-soft bg-card">
-      <AnimatePresence mode="wait">
-        <motion.img
-          key={i}
-          src={heroSlides[i]}
-          alt="Resona Africa"
-          initial={{ opacity: 0, scale: 1.05 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.9, ease: "easeOut" }}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      </AnimatePresence>
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-        {heroSlides.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => setI(idx)}
-            aria-label={`Slide ${idx + 1}`}
-            className={`h-1.5 rounded-full transition-all ${idx === i ? "w-8 bg-accent" : "w-1.5 bg-foreground/40"}`}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
+// Hero now uses a single background image (no carousel).
 
 const Landing = () => {
   return (
     <div className="min-h-screen bg-background">
       <PublicNav />
 
-      {/* HERO — 90seconds-style: bold headline left, asset right, stats below */}
-      <section className="relative overflow-hidden gradient-hero">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 pt-16 pb-12 lg:pt-24 lg:pb-20">
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-16 items-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="lg:col-span-7"
-            >
-              <h1 className="font-display font-bold text-5xl lg:text-7xl xl:text-[88px] leading-[0.98] tracking-tight text-foreground">
-                The African<br />
-                <span className="text-accent">podcast</span> platform
-              </h1>
-              <p className="mt-7 text-lg lg:text-xl text-muted-foreground max-w-xl leading-relaxed">
-                Create, distribute and grow podcasts anywhere in Africa. Choose self-serve creation to launch instantly, or scale your show with our enterprise platform.
-              </p>
-              <div className="mt-9 flex flex-col sm:flex-row gap-3">
-                <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full font-semibold shadow-gold text-base h-12 px-8">
-                  <Link to="/auth">Get started <ArrowRight className="w-4 h-4 ml-1" /></Link>
-                </Button>
-                <Button asChild size="lg" variant="outline" className="rounded-full font-semibold text-base h-12 px-8 border-border">
-                  <Link to="/discover">Explore podcasts</Link>
-                </Button>
-              </div>
-            </motion.div>
+      {/* HERO — full-bleed background image (Resona Talks Africa) */}
+      <section className="relative overflow-hidden">
+        <div
+          className="absolute inset-0 bg-center bg-cover"
+          style={{ backgroundImage: `url(${heroBg})` }}
+          aria-hidden
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-background/30 lg:from-background/90 lg:via-background/50 lg:to-transparent" aria-hidden />
+        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 pt-20 pb-16 lg:pt-32 lg:pb-28 min-h-[640px] lg:min-h-[760px] flex flex-col justify-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="max-w-2xl"
+          >
+            <span className="inline-block text-xs uppercase tracking-[0.3em] text-accent font-semibold mb-4">By iKAMBA</span>
+            <h1 className="font-display font-bold text-5xl lg:text-7xl xl:text-[88px] leading-[0.98] tracking-tight text-foreground">
+              The African<br />
+              <span className="text-accent">podcast</span> platform
+            </h1>
+            <p className="mt-7 text-lg lg:text-xl text-foreground/85 max-w-xl leading-relaxed">
+              Create, distribute and grow podcasts anywhere in Africa. Choose self-serve creation to launch instantly, or scale your show with our enterprise platform.
+            </p>
+            <div className="mt-9 flex flex-col sm:flex-row gap-3">
+              <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full font-semibold shadow-gold text-base h-12 px-8">
+                <Link to="/auth">Get started <ArrowRight className="w-4 h-4 ml-1" /></Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="rounded-full font-semibold text-base h-12 px-8 border-border/70 backdrop-blur bg-background/30">
+                <Link to="/discover">Explore podcasts</Link>
+              </Button>
+            </div>
+          </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.7, delay: 0.15 }}
-              className="lg:col-span-5"
-            >
-              <HeroCarousel />
-            </motion.div>
-          </div>
-
-          {/* Hero stats row — 90seconds pattern */}
+          {/* Hero stats row */}
           <div className="mt-16 lg:mt-24 grid grid-cols-3 gap-6 max-w-3xl">
             {[
               { v: "500+", l: "Episodes Produced" },
@@ -170,7 +130,7 @@ const Landing = () => {
             ].map((s) => (
               <div key={s.l}>
                 <p className="font-display font-bold text-4xl lg:text-6xl text-accent">{s.v}</p>
-                <p className="mt-2 text-sm uppercase tracking-[0.16em] text-muted-foreground">{s.l}</p>
+                <p className="mt-2 text-sm uppercase tracking-[0.16em] text-foreground/70">{s.l}</p>
               </div>
             ))}
           </div>

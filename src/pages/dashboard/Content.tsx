@@ -14,8 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Mic2, Edit, Trash2, ExternalLink, Upload, Loader2 } from "lucide-react";
+import { Plus, Mic2, Edit, Trash2, ExternalLink, Upload, Loader2, Image as ImageIcon, Link2, FileVideo } from "lucide-react";
 import { Link } from "react-router-dom";
+import { CATEGORIES } from "@/lib/categories";
 
 export default function Content() {
   const { user } = useAuth();
@@ -231,7 +232,15 @@ function PodcastDialog({ userId, editing, onClose }: { userId: string; editing?:
           </div>
           <div>
             <Label>Category</Label>
-            <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Business, Storytelling" />
+            <Select value={category || undefined} onValueChange={setCategory}>
+              <SelectTrigger><SelectValue placeholder="Pick a category" /></SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map((c) => (
+                  <SelectItem key={c.slug} value={c.slug}>{c.emoji} {c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">Helps listeners discover your show on the Discover page.</p>
           </div>
           <div>
             <Label>Cover image</Label>
@@ -264,6 +273,8 @@ function EpisodeDialog({ userId, podcastId, editing, onClose }: { userId: string
   const [mediaKind, setMediaKind] = useState(editing?.media_kind || "audio");
   const [embedProvider, setEmbedProvider] = useState<string>(editing?.embed_provider || "youtube");
   const [embedUrl, setEmbedUrl] = useState(editing?.embed_url || "");
+  const [coverUrl, setCoverUrl] = useState(editing?.cover_url || "");
+  const [coverUploading, setCoverUploading] = useState(false);
   const [isPremium, setIsPremium] = useState(editing?.is_premium || false);
   const [status, setStatus] = useState<"draft" | "scheduled" | "published">((editing?.status as "draft" | "scheduled" | "published") || "draft");
   const [scheduledAt, setScheduledAt] = useState(editing?.scheduled_at ? new Date(editing.scheduled_at).toISOString().slice(0, 16) : "");
@@ -284,8 +295,20 @@ function EpisodeDialog({ userId, podcastId, editing, onClose }: { userId: string
     toast.success("Upload complete");
   };
 
+  const onCoverUpload = async (file: File) => {
+    setCoverUploading(true);
+    const path = `${userId}/${podcastId}/thumb-${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
+    const { error } = await supabase.storage.from("podcast-covers").upload(path, file, { upsert: false, contentType: file.type });
+    if (error) { toast.error(error.message); setCoverUploading(false); return; }
+    const { data } = supabase.storage.from("podcast-covers").getPublicUrl(path);
+    setCoverUrl(data.publicUrl);
+    setCoverUploading(false);
+  };
+
   const submit = async () => {
     if (!title.trim()) { toast.error("Title required"); return; }
+    if (hosting === "embed" && !embedUrl.trim()) { toast.error("Paste a YouTube/Spotify URL"); return; }
+    if (hosting === "native" && !mediaUrl.trim()) { toast.error("Upload an audio or video file"); return; }
     setSaving(true);
     const finalSlug = slug.trim() || slugify(title);
     const payload = {
@@ -295,6 +318,7 @@ function EpisodeDialog({ userId, podcastId, editing, onClose }: { userId: string
       slug: finalSlug,
       description,
       hosting,
+      cover_url: coverUrl || null,
       media_url: hosting === "native" ? mediaUrl || null : null,
       media_kind: hosting === "native" ? mediaKind : null,
       embed_provider: hosting === "embed" ? (embedProvider as "youtube" | "spotify" | "apple" | "soundcloud" | "other") : null,
@@ -340,18 +364,31 @@ function EpisodeDialog({ userId, podcastId, editing, onClose }: { userId: string
             <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
           </div>
           <div>
-            <Label>Hosting</Label>
-            <Select value={hosting} onValueChange={(v) => setHosting(v as "native" | "embed")}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="native">Upload audio/video to Resona</SelectItem>
-                <SelectItem value="embed">Embed (YouTube, Spotify, etc.)</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>How will you provide the episode?</Label>
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              <button
+                type="button"
+                onClick={() => setHosting("native")}
+                className={`p-3 rounded-xl border text-left transition-all ${hosting === "native" ? "border-accent bg-accent/10" : "border-border hover:border-accent/40"}`}
+              >
+                <FileVideo className="w-5 h-5 text-accent mb-1" />
+                <p className="font-semibold text-sm">Upload from device</p>
+                <p className="text-xs text-muted-foreground">Audio or video file</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setHosting("embed")}
+                className={`p-3 rounded-xl border text-left transition-all ${hosting === "embed" ? "border-accent bg-accent/10" : "border-border hover:border-accent/40"}`}
+              >
+                <Link2 className="w-5 h-5 text-accent mb-1" />
+                <p className="font-semibold text-sm">Paste a link</p>
+                <p className="text-xs text-muted-foreground">YouTube, Spotify, etc.</p>
+              </button>
+            </div>
           </div>
           {hosting === "native" ? (
             <div>
-              <Label>Media file (audio or video)</Label>
+              <Label>Media file (audio or video, no size limit)</Label>
               <div className="flex items-center gap-3 mt-1">
                 <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card hover:bg-secondary cursor-pointer text-sm">
                   <Upload className="w-4 h-4" /> {uploading ? "Uploading…" : mediaUrl ? "Replace file" : "Upload file"}
@@ -376,11 +413,26 @@ function EpisodeDialog({ userId, podcastId, editing, onClose }: { userId: string
                 </Select>
               </div>
               <div>
-                <Label>Embed URL</Label>
-                <Input value={embedUrl} onChange={(e) => setEmbedUrl(e.target.value)} placeholder="https://..." />
+                <Label>Episode link</Label>
+                <Input value={embedUrl} onChange={(e) => setEmbedUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." />
+                <p className="text-xs text-muted-foreground mt-1">Resona will pull the player from this URL.</p>
               </div>
             </>
           )}
+          <div>
+            <Label>Thumbnail (optional)</Label>
+            <div className="flex items-center gap-3 mt-1">
+              {coverUrl ? (
+                <img src={coverUrl} alt="thumb" className="w-14 h-14 rounded-lg object-cover" />
+              ) : (
+                <div className="w-14 h-14 rounded-lg bg-secondary flex items-center justify-center"><ImageIcon className="w-5 h-5 text-muted-foreground" /></div>
+              )}
+              <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card hover:bg-secondary cursor-pointer text-sm">
+                <Upload className="w-4 h-4" /> {coverUploading ? "Uploading…" : coverUrl ? "Replace thumbnail" : "Upload thumbnail"}
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onCoverUpload(e.target.files[0])} disabled={coverUploading} />
+              </label>
+            </div>
+          </div>
           <div className="flex items-center justify-between p-3 rounded-lg border border-border">
             <div>
               <Label className="m-0">Premium episode</Label>
