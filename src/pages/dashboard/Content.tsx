@@ -14,8 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Mic2, Edit, Trash2, ExternalLink, Upload, Loader2 } from "lucide-react";
+import { Plus, Mic2, Edit, Trash2, ExternalLink, Upload, Loader2, Image as ImageIcon, Link2, FileVideo } from "lucide-react";
 import { Link } from "react-router-dom";
+import { CATEGORIES } from "@/lib/categories";
 
 export default function Content() {
   const { user } = useAuth();
