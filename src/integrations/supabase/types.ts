@@ -455,6 +455,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      podcast_public_stats: {
+        Args: { _podcast_id: string }
+        Returns: {
+          day: string
+          day_plays: number
+          total_plays: number
+          total_seconds: number
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "editor" | "viewer" | "creator"

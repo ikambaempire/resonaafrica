@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { VideoPlayer, EmbedPlayer } from "@/components/MediaPlayers";
+import { ChannelStats } from "@/components/ChannelStats";
 import { Mic2, Loader2, Bookmark, Clock, Heart, BadgeCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -76,6 +77,8 @@ export default function ChannelPage() {
             )}
           </section>
         )}
+
+        <ChannelStats podcastId={podcast.id} episodeCount={episodes.length} />
 
         <section className="px-6 lg:px-8 py-10 max-w-6xl mx-auto">
           <h2 className="font-display font-bold text-2xl mb-4">Episodes</h2>

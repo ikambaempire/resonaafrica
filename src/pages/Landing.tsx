@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PublicNav } from "@/components/PublicNav";
 import { Footer } from "@/components/Footer";
+import { NewReleases } from "@/components/NewReleases";
 import heroBg from "@/assets/hero-resona-bg.png";
 
 const partnerLogos = [
@@ -136,6 +137,9 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* NEW RELEASES */}
+      <NewReleases />
 
       {/* TWO-CARD SOLUTION SUMMARY — 90seconds pattern */}
       <section className="py-20 lg:py-28 border-t border-border/40">
