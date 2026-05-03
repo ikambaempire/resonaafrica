@@ -246,29 +246,17 @@ export default function AIClips() {
 
   const downloadClip = (c: Clip) => {
     if (!ep) return;
-    if (ep.hosting === "native" && ep.media_url && ep.media_kind !== "video") {
-      downloadAudioClip(ep.media_url, c, ep.title);
-    } else if (ep.hosting === "native" && ep.media_url && ep.media_kind === "video") {
-      // open trimmed source w/ media fragment hint; let user save raw file
-      const a = document.createElement("a");
-      a.href = `${ep.media_url}#t=${Math.floor(c.start_seconds)},${Math.floor(c.end_seconds)}`;
-      a.download = `${ep.title}-${c.title}.mp4`;
-      a.target = "_blank";
-      a.click();
-      toast.message("Video opened with trim hint — use right-click → Save As. For server-side trimming, attach FFmpeg.");
+    if (ep.hosting === "native" && ep.media_url) {
+      const kind = ep.media_kind === "video" ? "video" : "audio";
+      recordMediaClip(ep.media_url, c, ep.title, kind);
     } else {
-      // Embed: provide a deep-link text file
+      // Embed (YouTube/Spotify): we cannot record cross-origin streams. Provide a deep link.
       const ytId = ep.embed_provider === "youtube" && ep.embed_url ? getYouTubeId(ep.embed_url) : null;
       const link = ytId
         ? `https://www.youtube.com/watch?v=${ytId}&t=${Math.floor(c.start_seconds)}s`
         : ep.embed_url ?? "";
-      const txt = `Clip: ${c.title}\nHook: ${c.hook}\nStart: ${fmt(c.start_seconds)}\nEnd: ${fmt(c.end_seconds)}\nLink: ${link}\n`;
-      const blob = new Blob([txt], { type: "text/plain" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `${ep.title}-${c.title}.txt`;
-      a.click();
-      URL.revokeObjectURL(a.href);
+      if (link) window.open(link, "_blank");
+      toast.message("Embedded media can't be recorded in-browser. Re-upload as native to download as MP4/WebM.");
     }
   };
 
