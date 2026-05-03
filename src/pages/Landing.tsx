@@ -138,6 +138,9 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* NEW RELEASES */}
+      <NewReleases />
+
       {/* TWO-CARD SOLUTION SUMMARY — 90seconds pattern */}
       <section className="py-20 lg:py-28 border-t border-border/40">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
