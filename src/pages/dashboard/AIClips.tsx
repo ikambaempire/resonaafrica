@@ -28,36 +28,6 @@ function getYouTubeId(url: string): string | null {
   return m ? m[1] : null;
 }
 
-// --- WAV encoder for clipped audio export ---
-function encodeWav(buffer: AudioBuffer): Blob {
-  const numCh = buffer.numberOfChannels;
-  const sampleRate = buffer.sampleRate;
-  const samples = buffer.length;
-  const bytesPerSample = 2;
-  const blockAlign = numCh * bytesPerSample;
-  const byteRate = sampleRate * blockAlign;
-  const dataSize = samples * blockAlign;
-  const ab = new ArrayBuffer(44 + dataSize);
-  const view = new DataView(ab);
-  let p = 0;
-  const wstr = (s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(p++, s.charCodeAt(i)); };
-  wstr("RIFF"); view.setUint32(p, 36 + dataSize, true); p += 4;
-  wstr("WAVE"); wstr("fmt "); view.setUint32(p, 16, true); p += 4;
-  view.setUint16(p, 1, true); p += 2; view.setUint16(p, numCh, true); p += 2;
-  view.setUint32(p, sampleRate, true); p += 4; view.setUint32(p, byteRate, true); p += 4;
-  view.setUint16(p, blockAlign, true); p += 2; view.setUint16(p, bytesPerSample * 8, true); p += 2;
-  wstr("data"); view.setUint32(p, dataSize, true); p += 4;
-  const channels: Float32Array[] = [];
-  for (let c = 0; c < numCh; c++) channels.push(buffer.getChannelData(c));
-  for (let i = 0; i < samples; i++) {
-    for (let c = 0; c < numCh; c++) {
-      let s = Math.max(-1, Math.min(1, channels[c][i]));
-      view.setInt16(p, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-      p += 2;
-    }
-  }
-  return new Blob([ab], { type: "audio/wav" });
-}
 
 function pickMime(kind: "video" | "audio"): { mime: string; ext: string } {
   const candidates = kind === "video"
