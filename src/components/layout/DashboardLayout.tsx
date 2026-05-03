@@ -49,7 +49,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
       <header className="h-16 flex items-center px-6 gap-4 border-b border-border/40 backdrop-blur-xl bg-background/80 sticky top-0 z-30">
-        <Link to="/dashboard/overview" className="mr-6 shrink-0">
+        <Link to="/" className="mr-6 shrink-0" aria-label="Resona Africa home">
           <Logo size="sm" />
         </Link>
         <div className="flex-1 flex items-center h-full overflow-x-auto scrollbar-hide">

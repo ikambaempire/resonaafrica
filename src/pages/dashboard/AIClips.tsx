@@ -28,61 +28,96 @@ function getYouTubeId(url: string): string | null {
   return m ? m[1] : null;
 }
 
-// --- WAV encoder for clipped audio export ---
-function encodeWav(buffer: AudioBuffer): Blob {
-  const numCh = buffer.numberOfChannels;
-  const sampleRate = buffer.sampleRate;
-  const samples = buffer.length;
-  const bytesPerSample = 2;
-  const blockAlign = numCh * bytesPerSample;
-  const byteRate = sampleRate * blockAlign;
-  const dataSize = samples * blockAlign;
-  const ab = new ArrayBuffer(44 + dataSize);
-  const view = new DataView(ab);
-  let p = 0;
-  const wstr = (s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(p++, s.charCodeAt(i)); };
-  wstr("RIFF"); view.setUint32(p, 36 + dataSize, true); p += 4;
-  wstr("WAVE"); wstr("fmt "); view.setUint32(p, 16, true); p += 4;
-  view.setUint16(p, 1, true); p += 2; view.setUint16(p, numCh, true); p += 2;
-  view.setUint32(p, sampleRate, true); p += 4; view.setUint32(p, byteRate, true); p += 4;
-  view.setUint16(p, blockAlign, true); p += 2; view.setUint16(p, bytesPerSample * 8, true); p += 2;
-  wstr("data"); view.setUint32(p, dataSize, true); p += 4;
-  const channels: Float32Array[] = [];
-  for (let c = 0; c < numCh; c++) channels.push(buffer.getChannelData(c));
-  for (let i = 0; i < samples; i++) {
-    for (let c = 0; c < numCh; c++) {
-      let s = Math.max(-1, Math.min(1, channels[c][i]));
-      view.setInt16(p, s < 0 ? s * 0x8000 : s * 0x7fff, true);
-      p += 2;
-    }
+
+function pickMime(kind: "video" | "audio"): { mime: string; ext: string } {
+  const candidates = kind === "video"
+    ? [
+        { mime: "video/mp4;codecs=avc1,mp4a", ext: "mp4" },
+        { mime: "video/mp4", ext: "mp4" },
+        { mime: "video/webm;codecs=vp9,opus", ext: "webm" },
+        { mime: "video/webm;codecs=vp8,opus", ext: "webm" },
+        { mime: "video/webm", ext: "webm" },
+      ]
+    : [
+        { mime: "audio/mp4;codecs=mp4a.40.2", ext: "m4a" },
+        { mime: "audio/webm;codecs=opus", ext: "webm" },
+        { mime: "audio/webm", ext: "webm" },
+      ];
+  for (const c of candidates) {
+    // @ts-ignore
+    if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported?.(c.mime)) return c;
   }
-  return new Blob([ab], { type: "audio/wav" });
+  return kind === "video" ? { mime: "", ext: "webm" } : { mime: "", ext: "webm" };
 }
 
-async function downloadAudioClip(mediaUrl: string, clip: Clip, baseName: string) {
-  toast.loading("Preparing audio clip…", { id: "clip-dl" });
+function safeName(s: string) {
+  return s.replace(/[^a-z0-9]+/gi, "-").toLowerCase().replace(/^-+|-+$/g, "");
+}
+
+async function recordMediaClip(
+  mediaUrl: string,
+  clip: Clip,
+  baseName: string,
+  kind: "video" | "audio"
+) {
+  toast.loading(`Recording ${kind} clip…`, { id: "clip-dl" });
   try {
-    const res = await fetch(mediaUrl);
-    const arr = await res.arrayBuffer();
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const decoded = await ctx.decodeAudioData(arr);
-    const sr = decoded.sampleRate;
-    const start = Math.max(0, Math.floor(clip.start_seconds * sr));
-    const end = Math.min(decoded.length, Math.floor(clip.end_seconds * sr));
-    const len = Math.max(1, end - start);
-    const out = ctx.createBuffer(decoded.numberOfChannels, len, sr);
-    for (let c = 0; c < decoded.numberOfChannels; c++) {
-      out.copyToChannel(decoded.getChannelData(c).slice(start, end), c, 0);
+    const el = document.createElement(kind === "video" ? "video" : "audio") as HTMLMediaElement;
+    el.crossOrigin = "anonymous";
+    el.src = mediaUrl;
+    el.preload = "auto";
+    if (kind === "video") {
+      (el as HTMLVideoElement).playsInline = true;
+      (el as HTMLVideoElement).muted = false;
     }
-    const blob = encodeWav(out);
+    await new Promise<void>((res, rej) => {
+      el.onloadedmetadata = () => res();
+      el.onerror = () => rej(new Error("Could not load media"));
+    });
+    el.currentTime = clip.start_seconds;
+    await new Promise<void>((res) => { el.onseeked = () => res(); });
+
+    // captureStream
+    // @ts-ignore
+    const stream: MediaStream = (el as any).captureStream ? (el as any).captureStream() : (el as any).mozCaptureStream();
+    if (!stream) throw new Error("captureStream not supported in this browser");
+
+    const { mime, ext } = pickMime(kind);
+    const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+
+    const stopAt = clip.end_seconds;
+    const stopPromise = new Promise<void>((res) => {
+      recorder.onstop = () => res();
+    });
+
+    recorder.start(100);
+    await el.play();
+
+    await new Promise<void>((res) => {
+      const onTime = () => {
+        if (el.currentTime >= stopAt) {
+          el.removeEventListener("timeupdate", onTime);
+          el.pause();
+          res();
+        }
+      };
+      el.addEventListener("timeupdate", onTime);
+    });
+
+    recorder.stop();
+    await stopPromise;
+
+    const blob = new Blob(chunks, { type: mime || (kind === "video" ? "video/webm" : "audio/webm") });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${baseName}-${clip.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.wav`;
+    a.download = `${safeName(baseName)}-${safeName(clip.title)}.${ext}`;
     a.click();
     URL.revokeObjectURL(a.href);
-    toast.success("Audio clip downloaded", { id: "clip-dl" });
+    toast.success(`${kind === "video" ? "Video" : "Audio"} clip downloaded`, { id: "clip-dl" });
   } catch (e) {
-    toast.error("Could not slice audio: " + (e as Error).message, { id: "clip-dl" });
+    toast.error("Recording failed: " + (e as Error).message, { id: "clip-dl" });
   }
 }
 
@@ -181,29 +216,17 @@ export default function AIClips() {
 
   const downloadClip = (c: Clip) => {
     if (!ep) return;
-    if (ep.hosting === "native" && ep.media_url && ep.media_kind !== "video") {
-      downloadAudioClip(ep.media_url, c, ep.title);
-    } else if (ep.hosting === "native" && ep.media_url && ep.media_kind === "video") {
-      // open trimmed source w/ media fragment hint; let user save raw file
-      const a = document.createElement("a");
-      a.href = `${ep.media_url}#t=${Math.floor(c.start_seconds)},${Math.floor(c.end_seconds)}`;
-      a.download = `${ep.title}-${c.title}.mp4`;
-      a.target = "_blank";
-      a.click();
-      toast.message("Video opened with trim hint — use right-click → Save As. For server-side trimming, attach FFmpeg.");
+    if (ep.hosting === "native" && ep.media_url) {
+      const kind = ep.media_kind === "video" ? "video" : "audio";
+      recordMediaClip(ep.media_url, c, ep.title, kind);
     } else {
-      // Embed: provide a deep-link text file
+      // Embed (YouTube/Spotify): we cannot record cross-origin streams. Provide a deep link.
       const ytId = ep.embed_provider === "youtube" && ep.embed_url ? getYouTubeId(ep.embed_url) : null;
       const link = ytId
         ? `https://www.youtube.com/watch?v=${ytId}&t=${Math.floor(c.start_seconds)}s`
         : ep.embed_url ?? "";
-      const txt = `Clip: ${c.title}\nHook: ${c.hook}\nStart: ${fmt(c.start_seconds)}\nEnd: ${fmt(c.end_seconds)}\nLink: ${link}\n`;
-      const blob = new Blob([txt], { type: "text/plain" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `${ep.title}-${c.title}.txt`;
-      a.click();
-      URL.revokeObjectURL(a.href);
+      if (link) window.open(link, "_blank");
+      toast.message("Embedded media can't be recorded in-browser. Re-upload as native to download as MP4/WebM.");
     }
   };
 

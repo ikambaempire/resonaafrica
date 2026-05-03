@@ -23,6 +23,7 @@ import { PublicNav } from "@/components/PublicNav";
 import { Footer } from "@/components/Footer";
 import { NewReleases } from "@/components/NewReleases";
 import heroBg from "@/assets/hero-resona-bg.png";
+import realStoriesImg from "@/assets/real-stories.jpg";
 
 const partnerLogos = [
   "Spotify", "YouTube", "Apple Podcasts", "Audiomack", "Anchor", "Google Podcasts",
@@ -45,7 +46,7 @@ const productCards = [
     tag: "Real Stories",
     title: "Authentic voices from real people",
     body: "Capture and publish authentic African stories at scale. Fast, consistent, and built for the continent.",
-    image: "https://images.unsplash.com/photo-1520532223790-8fe96829ee20?w=900&q=80",
+    image: realStoriesImg,
     stats: [
       { v: "500+", l: "Episodes" },
       { v: "30+", l: "Countries" },
