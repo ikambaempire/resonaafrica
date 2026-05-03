@@ -59,30 +59,95 @@ function encodeWav(buffer: AudioBuffer): Blob {
   return new Blob([ab], { type: "audio/wav" });
 }
 
-async function downloadAudioClip(mediaUrl: string, clip: Clip, baseName: string) {
-  toast.loading("Preparing audio clip…", { id: "clip-dl" });
+function pickMime(kind: "video" | "audio"): { mime: string; ext: string } {
+  const candidates = kind === "video"
+    ? [
+        { mime: "video/mp4;codecs=avc1,mp4a", ext: "mp4" },
+        { mime: "video/mp4", ext: "mp4" },
+        { mime: "video/webm;codecs=vp9,opus", ext: "webm" },
+        { mime: "video/webm;codecs=vp8,opus", ext: "webm" },
+        { mime: "video/webm", ext: "webm" },
+      ]
+    : [
+        { mime: "audio/mp4;codecs=mp4a.40.2", ext: "m4a" },
+        { mime: "audio/webm;codecs=opus", ext: "webm" },
+        { mime: "audio/webm", ext: "webm" },
+      ];
+  for (const c of candidates) {
+    // @ts-ignore
+    if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported?.(c.mime)) return c;
+  }
+  return kind === "video" ? { mime: "", ext: "webm" } : { mime: "", ext: "webm" };
+}
+
+function safeName(s: string) {
+  return s.replace(/[^a-z0-9]+/gi, "-").toLowerCase().replace(/^-+|-+$/g, "");
+}
+
+async function recordMediaClip(
+  mediaUrl: string,
+  clip: Clip,
+  baseName: string,
+  kind: "video" | "audio"
+) {
+  toast.loading(`Recording ${kind} clip…`, { id: "clip-dl" });
   try {
-    const res = await fetch(mediaUrl);
-    const arr = await res.arrayBuffer();
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const decoded = await ctx.decodeAudioData(arr);
-    const sr = decoded.sampleRate;
-    const start = Math.max(0, Math.floor(clip.start_seconds * sr));
-    const end = Math.min(decoded.length, Math.floor(clip.end_seconds * sr));
-    const len = Math.max(1, end - start);
-    const out = ctx.createBuffer(decoded.numberOfChannels, len, sr);
-    for (let c = 0; c < decoded.numberOfChannels; c++) {
-      out.copyToChannel(decoded.getChannelData(c).slice(start, end), c, 0);
+    const el = document.createElement(kind === "video" ? "video" : "audio") as HTMLMediaElement;
+    el.crossOrigin = "anonymous";
+    el.src = mediaUrl;
+    el.preload = "auto";
+    if (kind === "video") {
+      (el as HTMLVideoElement).playsInline = true;
+      (el as HTMLVideoElement).muted = false;
     }
-    const blob = encodeWav(out);
+    await new Promise<void>((res, rej) => {
+      el.onloadedmetadata = () => res();
+      el.onerror = () => rej(new Error("Could not load media"));
+    });
+    el.currentTime = clip.start_seconds;
+    await new Promise<void>((res) => { el.onseeked = () => res(); });
+
+    // captureStream
+    // @ts-ignore
+    const stream: MediaStream = (el as any).captureStream ? (el as any).captureStream() : (el as any).mozCaptureStream();
+    if (!stream) throw new Error("captureStream not supported in this browser");
+
+    const { mime, ext } = pickMime(kind);
+    const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+
+    const stopAt = clip.end_seconds;
+    const stopPromise = new Promise<void>((res) => {
+      recorder.onstop = () => res();
+    });
+
+    recorder.start(100);
+    await el.play();
+
+    await new Promise<void>((res) => {
+      const onTime = () => {
+        if (el.currentTime >= stopAt) {
+          el.removeEventListener("timeupdate", onTime);
+          el.pause();
+          res();
+        }
+      };
+      el.addEventListener("timeupdate", onTime);
+    });
+
+    recorder.stop();
+    await stopPromise;
+
+    const blob = new Blob(chunks, { type: mime || (kind === "video" ? "video/webm" : "audio/webm") });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${baseName}-${clip.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.wav`;
+    a.download = `${safeName(baseName)}-${safeName(clip.title)}.${ext}`;
     a.click();
     URL.revokeObjectURL(a.href);
-    toast.success("Audio clip downloaded", { id: "clip-dl" });
+    toast.success(`${kind === "video" ? "Video" : "Audio"} clip downloaded`, { id: "clip-dl" });
   } catch (e) {
-    toast.error("Could not slice audio: " + (e as Error).message, { id: "clip-dl" });
+    toast.error("Recording failed: " + (e as Error).message, { id: "clip-dl" });
   }
 }
 
