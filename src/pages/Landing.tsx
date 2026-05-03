@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PublicNav } from "@/components/PublicNav";
 import { Footer } from "@/components/Footer";
+import { NewReleases } from "@/components/NewReleases";
 import heroBg from "@/assets/hero-resona-bg.png";
 
 const partnerLogos = [
