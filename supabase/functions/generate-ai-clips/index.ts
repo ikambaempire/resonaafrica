@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
     const { data: userRes } = await supabase.auth.getUser();
     if (!userRes?.user) return json({ error: "Unauthorized" }, 401);
 
-    const { episodeId } = await req.json();
+    const { episodeId, userPrompt } = await req.json();
     if (!episodeId) return json({ error: "episodeId required" }, 400);
 
     const { data: ep, error: epErr } = await supabase.from("episodes").select("*").eq("id", episodeId).maybeSingle();
@@ -32,11 +32,14 @@ Deno.serve(async (req) => {
     if (!apiKey) return json({ error: "LOVABLE_API_KEY missing" }, 500);
 
     const durationSec = Math.max(60, Number(ep.duration_seconds) || 1800); // default 30 min
+    const userGuidance = (userPrompt && String(userPrompt).trim().length > 0)
+      ? `\n\nCREATOR GUIDANCE (PRIORITIZE THIS): ${String(userPrompt).trim()}\nFocus the clip selection and chapter highlights on this guidance.`
+      : "";
     const prompt = `You are an assistant for podcast creators. Based on this episode, produce a transcript-style chapter outline with timestamps and 4 viral short-clip ideas with timestamps.
 
 Episode title: ${ep.title}
 Description: ${ep.description ?? "(none)"}
-Total estimated duration (seconds): ${durationSec}
+Total estimated duration (seconds): ${durationSec}${userGuidance}
 
 Rules:
 - Distribute timestamps across the FULL duration (do not bunch them at the start).
