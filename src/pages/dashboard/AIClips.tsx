@@ -250,13 +250,32 @@ export default function AIClips() {
       </header>
 
       <Card className="p-6 rounded-2xl space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Episode</label>
           <Select value={selected} onValueChange={setSelected}>
-            <SelectTrigger className="flex-1"><SelectValue placeholder="Pick an episode" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Pick an episode" /></SelectTrigger>
             <SelectContent>
               {episodes.map((e) => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}
             </SelectContent>
           </Select>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
+            <Lightbulb className="w-4 h-4 text-accent" />
+            What should the AI focus on? <span className="text-muted-foreground font-normal">(optional)</span>
+          </label>
+          <Textarea
+            value={userPrompt}
+            onChange={(e) => setUserPrompt(e.target.value)}
+            placeholder="e.g. Find the most emotional moments where the guest talks about overcoming failure. Or: Pull funny one-liners that work as TikTok hooks."
+            rows={3}
+            className="resize-none"
+          />
+          <p className="text-xs text-muted-foreground mt-1.5">Tell the AI which themes, moments, or angles to prioritize. Leave blank for general viral picks.</p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
           <Button onClick={generate} disabled={!selected || loading} className="bg-accent text-accent-foreground hover:bg-accent/90">
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Wand2 className="w-4 h-4 mr-1" />} Generate clips
           </Button>
@@ -271,6 +290,17 @@ export default function AIClips() {
             </>
           )}
         </div>
+
+        {ep?.hosting === "embed" && (
+          <div className="flex items-start gap-2 rounded-lg border border-accent/30 bg-accent/5 p-3 text-xs text-muted-foreground">
+            <ExternalLink className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+            <span>
+              This episode is hosted on <strong className="text-foreground capitalize">{ep.embed_provider ?? "an external platform"}</strong>.
+              Direct MP4 downloads aren't possible for embedded media. To download trimmed clips, re-upload the source file via <strong className="text-foreground">Content → Upload from device</strong>.
+            </span>
+          </div>
+        )}
+
         {episodes.length === 0 && <p className="text-sm text-muted-foreground">Create an episode first in Content.</p>}
       </Card>
 
