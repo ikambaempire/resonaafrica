@@ -32,95 +32,92 @@ function getYouTubeId(url: string): string | null {
 }
 
 
-function pickMime(kind: "video" | "audio"): { mime: string; ext: string } {
-  const candidates = kind === "video"
-    ? [
-        { mime: "video/mp4;codecs=avc1,mp4a", ext: "mp4" },
-        { mime: "video/mp4", ext: "mp4" },
-        { mime: "video/webm;codecs=vp9,opus", ext: "webm" },
-        { mime: "video/webm;codecs=vp8,opus", ext: "webm" },
-        { mime: "video/webm", ext: "webm" },
-      ]
-    : [
-        { mime: "audio/mp4;codecs=mp4a.40.2", ext: "m4a" },
-        { mime: "audio/webm;codecs=opus", ext: "webm" },
-        { mime: "audio/webm", ext: "webm" },
-      ];
-  for (const c of candidates) {
-    // @ts-ignore
-    if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported?.(c.mime)) return c;
-  }
-  return kind === "video" ? { mime: "", ext: "webm" } : { mime: "", ext: "webm" };
-}
-
 function safeName(s: string) {
   return s.replace(/[^a-z0-9]+/gi, "-").toLowerCase().replace(/^-+|-+$/g, "");
 }
 
-async function recordMediaClip(
+// Singleton ffmpeg instance — loaded on first use
+let ffmpegInstance: FFmpeg | null = null;
+async function getFFmpeg(onLog?: (msg: string) => void): Promise<FFmpeg> {
+  if (ffmpegInstance) return ffmpegInstance;
+  const ff = new FFmpeg();
+  if (onLog) ff.on("log", ({ message }) => onLog(message));
+  // Use the CDN-hosted core (UMD build) — no extra config needed.
+  const baseURL = "https://unpkg.com/@ffmpeg/[email protected]/dist/umd";
+  await ff.load({
+    coreURL: `${baseURL}/ffmpeg-core.js`,
+    wasmURL: `${baseURL}/ffmpeg-core.wasm`,
+  });
+  ffmpegInstance = ff;
+  return ff;
+}
+
+/**
+ * Precisely trim a native (CORS-accessible) media URL into a real MP4 / M4A clip.
+ * Uses ffmpeg.wasm — produces a true cut file (no real-time recording).
+ */
+async function trimNativeClip(
   mediaUrl: string,
   clip: Clip,
   baseName: string,
   kind: "video" | "audio"
 ) {
-  toast.loading(`Recording ${kind} clip…`, { id: "clip-dl" });
+  toast.loading(`Preparing ${kind} clip…`, { id: "clip-dl" });
   try {
-    const el = document.createElement(kind === "video" ? "video" : "audio") as HTMLMediaElement;
-    el.crossOrigin = "anonymous";
-    el.src = mediaUrl;
-    el.preload = "auto";
-    if (kind === "video") {
-      (el as HTMLVideoElement).playsInline = true;
-      (el as HTMLVideoElement).muted = false;
-    }
-    await new Promise<void>((res, rej) => {
-      el.onloadedmetadata = () => res();
-      el.onerror = () => rej(new Error("Could not load media"));
-    });
-    el.currentTime = clip.start_seconds;
-    await new Promise<void>((res) => { el.onseeked = () => res(); });
+    const ff = await getFFmpeg();
+    // Guess input extension from URL (fallback to mp4/mp3)
+    const urlNoQuery = mediaUrl.split("?")[0];
+    const inExtMatch = urlNoQuery.match(/\.([a-z0-9]{3,4})$/i);
+    const inExt = inExtMatch ? inExtMatch[1].toLowerCase() : (kind === "video" ? "mp4" : "mp3");
+    const inName = `input.${inExt}`;
+    const outExt = kind === "video" ? "mp4" : "m4a";
+    const outName = `clip.${outExt}`;
 
-    // captureStream
-    // @ts-ignore
-    const stream: MediaStream = (el as any).captureStream ? (el as any).captureStream() : (el as any).mozCaptureStream();
-    if (!stream) throw new Error("captureStream not supported in this browser");
+    toast.loading(`Downloading source…`, { id: "clip-dl" });
+    await ff.writeFile(inName, await fetchFile(mediaUrl));
 
-    const { mime, ext } = pickMime(kind);
-    const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-    const chunks: Blob[] = [];
-    recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    const start = Math.max(0, clip.start_seconds);
+    const dur = Math.max(0.1, clip.end_seconds - clip.start_seconds);
 
-    const stopAt = clip.end_seconds;
-    const stopPromise = new Promise<void>((res) => {
-      recorder.onstop = () => res();
-    });
+    toast.loading(`Cutting clip with FFmpeg…`, { id: "clip-dl" });
+    const args = kind === "video"
+      ? [
+          "-ss", String(start),
+          "-i", inName,
+          "-t", String(dur),
+          "-c:v", "libx264",
+          "-preset", "veryfast",
+          "-crf", "23",
+          "-c:a", "aac",
+          "-b:a", "128k",
+          "-movflags", "+faststart",
+          outName,
+        ]
+      : [
+          "-ss", String(start),
+          "-i", inName,
+          "-t", String(dur),
+          "-c:a", "aac",
+          "-b:a", "192k",
+          outName,
+        ];
+    await ff.exec(args);
 
-    recorder.start(100);
-    await el.play();
-
-    await new Promise<void>((res) => {
-      const onTime = () => {
-        if (el.currentTime >= stopAt) {
-          el.removeEventListener("timeupdate", onTime);
-          el.pause();
-          res();
-        }
-      };
-      el.addEventListener("timeupdate", onTime);
-    });
-
-    recorder.stop();
-    await stopPromise;
-
-    const blob = new Blob(chunks, { type: mime || (kind === "video" ? "video/webm" : "audio/webm") });
+    const data = await ff.readFile(outName);
+    const blob = new Blob([data as Uint8Array], { type: kind === "video" ? "video/mp4" : "audio/mp4" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${safeName(baseName)}-${safeName(clip.title)}.${ext}`;
+    a.download = `${safeName(baseName)}-${safeName(clip.title)}.${outExt}`;
     a.click();
     URL.revokeObjectURL(a.href);
-    toast.success(`${kind === "video" ? "Video" : "Audio"} clip downloaded`, { id: "clip-dl" });
+
+    // Cleanup virtual FS
+    try { await ff.deleteFile(inName); await ff.deleteFile(outName); } catch { /* ignore */ }
+
+    toast.success(`Clip downloaded as .${outExt}`, { id: "clip-dl" });
   } catch (e) {
-    toast.error("Recording failed: " + (e as Error).message, { id: "clip-dl" });
+    console.error(e);
+    toast.error("Couldn't cut the clip: " + (e as Error).message, { id: "clip-dl" });
   }
 }
 
