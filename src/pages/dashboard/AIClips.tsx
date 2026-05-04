@@ -143,6 +143,7 @@ function downloadSrt(clips: Clip[], episodeTitle: string) {
 export default function AIClips() {
   const { data: episodes = [] } = useMyEpisodes();
   const [selected, setSelected] = useState<string | undefined>();
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
   const [userPrompt, setUserPrompt] = useState("");
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
@@ -160,6 +161,8 @@ export default function AIClips() {
   useEffect(() => {
     setPreviewIndex(null);
     setDraftClips(persistedClips.map((c) => ({ ...c })));
+    // If episode already has clips, jump straight to step 3 for review.
+    setStep(persistedClips.length > 0 ? 3 : 1);
   }, [selected, persistedClips]);
 
   const maxDur = Math.max(60, Number(ep?.duration_seconds) || 1800);
