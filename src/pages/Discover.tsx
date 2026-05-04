@@ -56,7 +56,6 @@ export default function Discover() {
                         <div className="relative aspect-[4/3] overflow-hidden">
                           <img src={c.thumbnail} alt={c.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                           <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent" />
-                          <span className="absolute top-3 left-3 text-2xl">{c.emoji}</span>
                           <div className="absolute bottom-3 left-3 right-3">
                             <p className="font-display font-bold text-lg text-foreground">{c.name}</p>
                             <p className="text-xs text-muted-foreground">{n} podcast{n === 1 ? "" : "s"}</p>
