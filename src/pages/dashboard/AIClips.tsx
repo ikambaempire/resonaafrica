@@ -143,6 +143,7 @@ function downloadSrt(clips: Clip[], episodeTitle: string) {
 export default function AIClips() {
   const { data: episodes = [] } = useMyEpisodes();
   const [selected, setSelected] = useState<string | undefined>();
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
   const [userPrompt, setUserPrompt] = useState("");
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
@@ -160,6 +161,8 @@ export default function AIClips() {
   useEffect(() => {
     setPreviewIndex(null);
     setDraftClips(persistedClips.map((c) => ({ ...c })));
+    // If episode already has clips, jump straight to step 3 for review.
+    setStep(persistedClips.length > 0 ? 3 : 1);
   }, [selected, persistedClips]);
 
   const maxDur = Math.max(60, Number(ep?.duration_seconds) || 1800);
@@ -173,6 +176,7 @@ export default function AIClips() {
       const result = data as { error?: string; clips?: Clip[] };
       if (result?.error) throw new Error(result.error);
       toast.success(`Generated ${result?.clips?.length ?? 0} clip ideas`);
+      setStep(3);
     } catch (e) {
       toast.error((e as Error).message);
     } finally { setLoading(false); }
@@ -249,60 +253,142 @@ export default function AIClips() {
         <p className="mt-1 text-muted-foreground">Generate clips, fine-tune their start &amp; end, then download or export.</p>
       </header>
 
-      <Card className="p-6 rounded-2xl space-y-4">
-        <div>
-          <label className="text-sm font-medium mb-1.5 block">Episode</label>
+      {/* Stepper indicator */}
+      <div className="flex items-center gap-2 text-xs">
+        {[
+          { n: 1, label: "Choose episode" },
+          { n: 2, label: "Tell AI focus" },
+          { n: 3, label: "Review & download" },
+        ].map((s, i) => {
+          const isActive = step === s.n;
+          const isDone = step > s.n;
+          const reachable = s.n === 1 || (s.n === 2 && !!selected) || (s.n === 3 && draftClips.length > 0);
+          return (
+            <button
+              key={s.n}
+              type="button"
+              disabled={!reachable}
+              onClick={() => reachable && setStep(s.n as 1 | 2 | 3)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all ${
+                isActive ? "border-accent bg-accent/10 text-foreground" :
+                isDone ? "border-accent/40 bg-accent/5 text-accent" :
+                "border-border text-muted-foreground"
+              } ${reachable ? "cursor-pointer" : "opacity-50 cursor-not-allowed"}`}
+            >
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                isActive || isDone ? "bg-accent text-accent-foreground" : "bg-secondary"
+              }`}>{s.n}</span>
+              <span className="hidden sm:inline">{s.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* STEP 1: Choose episode */}
+      {step === 1 && (
+        <Card className="p-6 rounded-2xl space-y-4">
+          <div>
+            <h2 className="font-display font-bold text-lg flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-xs font-bold">1</span>
+              Pick an episode
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">Choose which episode the AI should turn into short clips.</p>
+          </div>
           <Select value={selected} onValueChange={setSelected}>
             <SelectTrigger><SelectValue placeholder="Pick an episode" /></SelectTrigger>
             <SelectContent>
               {episodes.map((e) => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}
             </SelectContent>
           </Select>
-        </div>
+          {episodes.length === 0 && (
+            <p className="text-sm text-muted-foreground">Create an episode first in Content.</p>
+          )}
+          {ep?.hosting === "embed" && (
+            <div className="flex items-start gap-2 rounded-lg border border-accent/30 bg-accent/5 p-3 text-xs text-muted-foreground">
+              <ExternalLink className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+              <span>
+                This episode is hosted on <strong className="text-foreground capitalize">{ep.embed_provider ?? "an external platform"}</strong>.
+                Direct MP4 downloads aren't possible for embedded media. To download trimmed clips, re-upload the source file via <strong className="text-foreground">Content → Upload from device</strong>.
+              </span>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button onClick={() => setStep(2)} disabled={!selected} className="bg-accent text-accent-foreground hover:bg-accent/90">
+              Next: Tell AI what to focus on →
+            </Button>
+          </div>
+        </Card>
+      )}
 
-        <div>
-          <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
-            <Lightbulb className="w-4 h-4 text-accent" />
-            What should the AI focus on? <span className="text-muted-foreground font-normal">(optional)</span>
-          </label>
-          <Textarea
-            value={userPrompt}
-            onChange={(e) => setUserPrompt(e.target.value)}
-            placeholder="e.g. Find the most emotional moments where the guest talks about overcoming failure. Or: Pull funny one-liners that work as TikTok hooks."
-            rows={3}
-            className="resize-none"
-          />
-          <p className="text-xs text-muted-foreground mt-1.5">Tell the AI which themes, moments, or angles to prioritize. Leave blank for general viral picks.</p>
-        </div>
+      {/* STEP 2: Prompt */}
+      {step === 2 && (
+        <Card className="p-6 rounded-2xl space-y-4">
+          <div>
+            <h2 className="font-display font-bold text-lg flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-xs font-bold">2</span>
+              What should the AI focus on?
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Episode: <strong className="text-foreground">{ep?.title}</strong>. Describe the type of moments you want — or leave blank for general viral picks.
+            </p>
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
+              <Lightbulb className="w-4 h-4 text-accent" /> Your focus <span className="text-muted-foreground font-normal">(optional)</span>
+            </label>
+            <Textarea
+              value={userPrompt}
+              onChange={(e) => setUserPrompt(e.target.value)}
+              placeholder="e.g. Find the most emotional moments where the guest talks about overcoming failure. Or: Pull funny one-liners that work as TikTok hooks."
+              rows={4}
+              className="resize-none"
+            />
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {[
+                "Funny one-liners that work as TikTok hooks",
+                "Emotional storytelling moments",
+                "Bold opinions or hot takes",
+                "Practical advice / actionable tips",
+              ].map((s) => (
+                <button key={s} type="button" onClick={() => setUserPrompt(s)}
+                  className="text-xs px-2.5 py-1 rounded-full border border-border hover:border-accent/60 hover:bg-accent/5 text-muted-foreground hover:text-foreground transition-colors">
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-between gap-2">
+            <Button variant="outline" onClick={() => setStep(1)}>← Back</Button>
+            <Button onClick={generate} disabled={loading} className="bg-accent text-accent-foreground hover:bg-accent/90">
+              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Wand2 className="w-4 h-4 mr-1" />} Generate clips
+            </Button>
+          </div>
+        </Card>
+      )}
 
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={generate} disabled={!selected || loading} className="bg-accent text-accent-foreground hover:bg-accent/90">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Wand2 className="w-4 h-4 mr-1" />} Generate clips
-          </Button>
-          {draftClips.length > 0 && (
-            <>
-              <Button variant="outline" onClick={saveAll} disabled={!dirty || saving}>
+      {/* STEP 3: Review actions header */}
+      {step === 3 && draftClips.length > 0 && (
+        <Card className="p-6 rounded-2xl space-y-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="font-display font-bold text-lg flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-xs font-bold">3</span>
+                Review, edit & download
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">Fine-tune timestamps below, then preview or download each clip.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={() => setStep(2)}>← Re-prompt</Button>
+              <Button variant="outline" size="sm" onClick={saveAll} disabled={!dirty || saving}>
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />} Save edits
               </Button>
-              <Button variant="outline" onClick={() => downloadSrt(draftClips, ep?.title ?? "clips")}>
+              <Button variant="outline" size="sm" onClick={() => downloadSrt(draftClips, ep?.title ?? "clips")}>
                 <Download className="w-4 h-4 mr-1" /> Export .srt
               </Button>
-            </>
-          )}
-        </div>
-
-        {ep?.hosting === "embed" && (
-          <div className="flex items-start gap-2 rounded-lg border border-accent/30 bg-accent/5 p-3 text-xs text-muted-foreground">
-            <ExternalLink className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-            <span>
-              This episode is hosted on <strong className="text-foreground capitalize">{ep.embed_provider ?? "an external platform"}</strong>.
-              Direct MP4 downloads aren't possible for embedded media. To download trimmed clips, re-upload the source file via <strong className="text-foreground">Content → Upload from device</strong>.
-            </span>
+            </div>
           </div>
-        )}
-
-        {episodes.length === 0 && <p className="text-sm text-muted-foreground">Create an episode first in Content.</p>}
-      </Card>
+        </Card>
+      )}
 
       {ep?.hosting === "native" && ep.media_url && (
         ep.media_kind === "video" ? (
@@ -312,14 +398,14 @@ export default function AIClips() {
         )
       )}
 
-      {ep?.transcript && (
+      {step === 3 && ep?.transcript && (
         <Card className="p-6 rounded-2xl">
           <h2 className="font-display font-bold text-xl mb-3 flex items-center gap-2"><FileText className="w-5 h-5 text-accent" /> Transcript outline</h2>
           <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-sans leading-relaxed">{ep.transcript}</pre>
         </Card>
       )}
 
-      {draftClips.length > 0 && (
+      {step === 3 && draftClips.length > 0 && (
         <Card className="p-6 rounded-2xl">
           <h2 className="font-display font-bold text-xl mb-4 flex items-center gap-2">
             <Scissors className="w-5 h-5 text-accent" /> Suggested clips
@@ -406,10 +492,10 @@ export default function AIClips() {
         </Card>
       )}
 
-      {!ep?.transcript && draftClips.length === 0 && selected && !loading && (
+      {step === 3 && draftClips.length === 0 && (
         <Card className="p-12 text-center rounded-2xl border-dashed">
           <Sparkles className="w-10 h-10 text-accent mx-auto mb-3" />
-          <p className="text-muted-foreground">Click <strong className="text-foreground">Generate clips</strong> to produce a timestamped outline and short-clip ideas.</p>
+          <p className="text-muted-foreground">No clips yet. Go back to <strong className="text-foreground">step 2</strong> and generate some.</p>
         </Card>
       )}
     </div>

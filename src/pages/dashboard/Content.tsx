@@ -279,20 +279,49 @@ function EpisodeDialog({ userId, podcastId, editing, onClose }: { userId: string
   const [status, setStatus] = useState<"draft" | "scheduled" | "published">((editing?.status as "draft" | "scheduled" | "published") || "draft");
   const [scheduledAt, setScheduledAt] = useState(editing?.scheduled_at ? new Date(editing.scheduled_at).toISOString().slice(0, 16) : "");
   const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
+  const [uploadMsg, setUploadMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const create = useCreateEpisode();
   const update = useUpdateEpisode();
 
   const onUpload = async (file: File) => {
     setUploading(true);
+    setUploadPct(0);
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+    setUploadMsg(`Preparing ${sizeMb} MB…`);
     setMediaKind(file.type.startsWith("video/") ? "video" : "audio");
     const path = `${userId}/${podcastId}/${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-    const { error } = await supabase.storage.from("episode-media").upload(path, file, { upsert: false, contentType: file.type });
-    if (error) { toast.error(error.message); setUploading(false); return; }
-    const { data } = supabase.storage.from("episode-media").getPublicUrl(path);
-    setMediaUrl(data.publicUrl);
-    setUploading(false);
-    toast.success("Upload complete");
+    try {
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("episode-media")
+        .createSignedUploadUrl(path);
+      if (signErr || !signed) throw signErr || new Error("Could not create upload URL");
+
+      setUploadMsg(`Uploading ${sizeMb} MB…`);
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", signed.signedUrl, true);
+        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+        xhr.setRequestHeader("x-upsert", "false");
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) setUploadPct(Math.round((ev.loaded / ev.total) * 100));
+        };
+        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed (${xhr.status})`)));
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+        xhr.send(file);
+      });
+
+      const { data } = supabase.storage.from("episode-media").getPublicUrl(path);
+      setMediaUrl(data.publicUrl);
+      setUploadPct(100);
+      toast.success("Upload complete");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setUploading(false);
+      setUploadMsg("");
+    }
   };
 
   const onCoverUpload = async (file: File) => {
@@ -388,14 +417,23 @@ function EpisodeDialog({ userId, podcastId, editing, onClose }: { userId: string
           </div>
           {hosting === "native" ? (
             <div>
-              <Label>Media file (audio or video, no size limit)</Label>
+              <Label>Media file (audio or video)</Label>
               <div className="flex items-center gap-3 mt-1">
-                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card hover:bg-secondary cursor-pointer text-sm">
+                <label className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card text-sm ${uploading ? "opacity-60 cursor-not-allowed" : "hover:bg-secondary cursor-pointer"}`}>
                   <Upload className="w-4 h-4" /> {uploading ? "Uploading…" : mediaUrl ? "Replace file" : "Upload file"}
                   <input type="file" accept="audio/*,video/*" className="hidden" onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0])} disabled={uploading} />
                 </label>
-                {mediaUrl && <span className="text-xs text-success">✓ uploaded ({mediaKind})</span>}
+                {mediaUrl && !uploading && <span className="text-xs text-success">✓ uploaded ({mediaKind})</span>}
               </div>
+              {uploading && (
+                <div className="mt-3 space-y-1.5">
+                  <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+                    <div className="h-full bg-accent transition-all" style={{ width: `${uploadPct}%` }} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">{uploadMsg} {uploadPct}%</p>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-2">Tip: a 100 MB MP4 typically uploads in 1–3 min on a normal connection. Larger video files may take longer — keep this tab open.</p>
             </div>
           ) : (
             <>
