@@ -492,10 +492,10 @@ export default function AIClips() {
         </Card>
       )}
 
-      {!ep?.transcript && draftClips.length === 0 && selected && !loading && (
+      {step === 3 && draftClips.length === 0 && (
         <Card className="p-12 text-center rounded-2xl border-dashed">
           <Sparkles className="w-10 h-10 text-accent mx-auto mb-3" />
-          <p className="text-muted-foreground">Click <strong className="text-foreground">Generate clips</strong> to produce a timestamped outline and short-clip ideas.</p>
+          <p className="text-muted-foreground">No clips yet. Go back to <strong className="text-foreground">step 2</strong> and generate some.</p>
         </Card>
       )}
     </div>
