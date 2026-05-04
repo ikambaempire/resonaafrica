@@ -144,6 +144,7 @@ export default function AIClips() {
   const { data: episodes = [] } = useMyEpisodes();
   const [selected, setSelected] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
+  const [userPrompt, setUserPrompt] = useState("");
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [draftClips, setDraftClips] = useState<Clip[]>([]);
   const [saving, setSaving] = useState(false);
