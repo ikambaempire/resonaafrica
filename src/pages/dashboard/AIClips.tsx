@@ -398,14 +398,14 @@ export default function AIClips() {
         )
       )}
 
-      {ep?.transcript && (
+      {step === 3 && ep?.transcript && (
         <Card className="p-6 rounded-2xl">
           <h2 className="font-display font-bold text-xl mb-3 flex items-center gap-2"><FileText className="w-5 h-5 text-accent" /> Transcript outline</h2>
           <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-sans leading-relaxed">{ep.transcript}</pre>
         </Card>
       )}
 
-      {draftClips.length > 0 && (
+      {step === 3 && draftClips.length > 0 && (
         <Card className="p-6 rounded-2xl">
           <h2 className="font-display font-bold text-xl mb-4 flex items-center gap-2">
             <Scissors className="w-5 h-5 text-accent" /> Suggested clips
