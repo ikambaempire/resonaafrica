@@ -176,6 +176,7 @@ export default function AIClips() {
       const result = data as { error?: string; clips?: Clip[] };
       if (result?.error) throw new Error(result.error);
       toast.success(`Generated ${result?.clips?.length ?? 0} clip ideas`);
+      setStep(3);
     } catch (e) {
       toast.error((e as Error).message);
     } finally { setLoading(false); }
