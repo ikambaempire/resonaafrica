@@ -60,7 +60,7 @@ export function Footer() {
             © {new Date().getFullYear()} Resona Africa. All rights reserved.
           </p>
           <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-            Powered by <span className="text-accent font-semibold">iKAMBA</span>
+            Powered by <span className="text-accent font-semibold normal-case">iKAMBA</span>
           </p>
         </div>
       </div>

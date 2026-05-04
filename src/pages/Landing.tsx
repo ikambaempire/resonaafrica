@@ -105,7 +105,7 @@ const Landing = () => {
             transition={{ duration: 0.6 }}
             className="max-w-2xl"
           >
-            <span className="inline-block text-xs uppercase tracking-[0.3em] text-accent font-semibold mb-4">By iKAMBA</span>
+            <span className="inline-block text-xs uppercase tracking-[0.3em] text-accent font-semibold mb-4">By <span className="normal-case">iKAMBA</span></span>
             <h1 className="font-display font-bold text-5xl lg:text-7xl xl:text-[88px] leading-[0.98] tracking-tight text-foreground">
               The African<br />
               <span className="text-accent">podcast</span> platform

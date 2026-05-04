@@ -173,7 +173,7 @@ const Auth = () => {
           By continuing, you agree to our Terms of Service and Privacy Policy.
         </p>
         <p className="text-center text-[10px] uppercase tracking-[0.2em] text-muted-foreground mt-3">
-          Powered by <span className="text-accent font-semibold">iKAMBA</span>
+          Powered by <span className="text-accent font-semibold normal-case">iKAMBA</span>
         </p>
       </motion.div>
     </div>

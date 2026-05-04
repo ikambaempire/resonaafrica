@@ -3,11 +3,14 @@ import { useMyEpisodes } from "@/hooks/useEpisodes";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Sparkles, Loader2, Wand2, Play, Pause, Clock, Scissors, FileText, Download, Save } from "lucide-react";
+import { Sparkles, Loader2, Wand2, Play, Pause, Clock, Scissors, FileText, Download, Save, Lightbulb, ExternalLink } from "lucide-react";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { fetchFile } from "@ffmpeg/util";
 
 interface Clip {
   title: string;
@@ -29,95 +32,94 @@ function getYouTubeId(url: string): string | null {
 }
 
 
-function pickMime(kind: "video" | "audio"): { mime: string; ext: string } {
-  const candidates = kind === "video"
-    ? [
-        { mime: "video/mp4;codecs=avc1,mp4a", ext: "mp4" },
-        { mime: "video/mp4", ext: "mp4" },
-        { mime: "video/webm;codecs=vp9,opus", ext: "webm" },
-        { mime: "video/webm;codecs=vp8,opus", ext: "webm" },
-        { mime: "video/webm", ext: "webm" },
-      ]
-    : [
-        { mime: "audio/mp4;codecs=mp4a.40.2", ext: "m4a" },
-        { mime: "audio/webm;codecs=opus", ext: "webm" },
-        { mime: "audio/webm", ext: "webm" },
-      ];
-  for (const c of candidates) {
-    // @ts-ignore
-    if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported?.(c.mime)) return c;
-  }
-  return kind === "video" ? { mime: "", ext: "webm" } : { mime: "", ext: "webm" };
-}
-
 function safeName(s: string) {
   return s.replace(/[^a-z0-9]+/gi, "-").toLowerCase().replace(/^-+|-+$/g, "");
 }
 
-async function recordMediaClip(
+// Singleton ffmpeg instance — loaded on first use
+let ffmpegInstance: FFmpeg | null = null;
+async function getFFmpeg(onLog?: (msg: string) => void): Promise<FFmpeg> {
+  if (ffmpegInstance) return ffmpegInstance;
+  const ff = new FFmpeg();
+  if (onLog) ff.on("log", ({ message }) => onLog(message));
+  // Use the CDN-hosted core (UMD build) — no extra config needed.
+  const baseURL = "https://unpkg.com/@ffmpeg/[email protected]/dist/umd";
+  await ff.load({
+    coreURL: `${baseURL}/ffmpeg-core.js`,
+    wasmURL: `${baseURL}/ffmpeg-core.wasm`,
+  });
+  ffmpegInstance = ff;
+  return ff;
+}
+
+/**
+ * Precisely trim a native (CORS-accessible) media URL into a real MP4 / M4A clip.
+ * Uses ffmpeg.wasm — produces a true cut file (no real-time recording).
+ */
+async function trimNativeClip(
   mediaUrl: string,
   clip: Clip,
   baseName: string,
   kind: "video" | "audio"
 ) {
-  toast.loading(`Recording ${kind} clip…`, { id: "clip-dl" });
+  toast.loading(`Preparing ${kind} clip…`, { id: "clip-dl" });
   try {
-    const el = document.createElement(kind === "video" ? "video" : "audio") as HTMLMediaElement;
-    el.crossOrigin = "anonymous";
-    el.src = mediaUrl;
-    el.preload = "auto";
-    if (kind === "video") {
-      (el as HTMLVideoElement).playsInline = true;
-      (el as HTMLVideoElement).muted = false;
-    }
-    await new Promise<void>((res, rej) => {
-      el.onloadedmetadata = () => res();
-      el.onerror = () => rej(new Error("Could not load media"));
-    });
-    el.currentTime = clip.start_seconds;
-    await new Promise<void>((res) => { el.onseeked = () => res(); });
+    const ff = await getFFmpeg();
+    // Guess input extension from URL (fallback to mp4/mp3)
+    const urlNoQuery = mediaUrl.split("?")[0];
+    const inExtMatch = urlNoQuery.match(/\.([a-z0-9]{3,4})$/i);
+    const inExt = inExtMatch ? inExtMatch[1].toLowerCase() : (kind === "video" ? "mp4" : "mp3");
+    const inName = `input.${inExt}`;
+    const outExt = kind === "video" ? "mp4" : "m4a";
+    const outName = `clip.${outExt}`;
 
-    // captureStream
-    // @ts-ignore
-    const stream: MediaStream = (el as any).captureStream ? (el as any).captureStream() : (el as any).mozCaptureStream();
-    if (!stream) throw new Error("captureStream not supported in this browser");
+    toast.loading(`Downloading source…`, { id: "clip-dl" });
+    await ff.writeFile(inName, await fetchFile(mediaUrl));
 
-    const { mime, ext } = pickMime(kind);
-    const recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-    const chunks: Blob[] = [];
-    recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    const start = Math.max(0, clip.start_seconds);
+    const dur = Math.max(0.1, clip.end_seconds - clip.start_seconds);
 
-    const stopAt = clip.end_seconds;
-    const stopPromise = new Promise<void>((res) => {
-      recorder.onstop = () => res();
-    });
+    toast.loading(`Cutting clip with FFmpeg…`, { id: "clip-dl" });
+    const args = kind === "video"
+      ? [
+          "-ss", String(start),
+          "-i", inName,
+          "-t", String(dur),
+          "-c:v", "libx264",
+          "-preset", "veryfast",
+          "-crf", "23",
+          "-c:a", "aac",
+          "-b:a", "128k",
+          "-movflags", "+faststart",
+          outName,
+        ]
+      : [
+          "-ss", String(start),
+          "-i", inName,
+          "-t", String(dur),
+          "-c:a", "aac",
+          "-b:a", "192k",
+          outName,
+        ];
+    await ff.exec(args);
 
-    recorder.start(100);
-    await el.play();
-
-    await new Promise<void>((res) => {
-      const onTime = () => {
-        if (el.currentTime >= stopAt) {
-          el.removeEventListener("timeupdate", onTime);
-          el.pause();
-          res();
-        }
-      };
-      el.addEventListener("timeupdate", onTime);
-    });
-
-    recorder.stop();
-    await stopPromise;
-
-    const blob = new Blob(chunks, { type: mime || (kind === "video" ? "video/webm" : "audio/webm") });
+    const data = await ff.readFile(outName);
+    const u8 = data as Uint8Array;
+    const buf = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) as ArrayBuffer;
+    const blob = new Blob([buf], { type: kind === "video" ? "video/mp4" : "audio/mp4" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${safeName(baseName)}-${safeName(clip.title)}.${ext}`;
+    a.download = `${safeName(baseName)}-${safeName(clip.title)}.${outExt}`;
     a.click();
     URL.revokeObjectURL(a.href);
-    toast.success(`${kind === "video" ? "Video" : "Audio"} clip downloaded`, { id: "clip-dl" });
+
+    // Cleanup virtual FS
+    try { await ff.deleteFile(inName); await ff.deleteFile(outName); } catch { /* ignore */ }
+
+    toast.success(`Clip downloaded as .${outExt}`, { id: "clip-dl" });
   } catch (e) {
-    toast.error("Recording failed: " + (e as Error).message, { id: "clip-dl" });
+    console.error(e);
+    toast.error("Couldn't cut the clip: " + (e as Error).message, { id: "clip-dl" });
   }
 }
 
@@ -142,6 +144,7 @@ export default function AIClips() {
   const { data: episodes = [] } = useMyEpisodes();
   const [selected, setSelected] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
+  const [userPrompt, setUserPrompt] = useState("");
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [draftClips, setDraftClips] = useState<Clip[]>([]);
   const [saving, setSaving] = useState(false);
@@ -165,7 +168,7 @@ export default function AIClips() {
     if (!selected) { toast.error("Choose an episode"); return; }
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-ai-clips", { body: { episodeId: selected } });
+      const { data, error } = await supabase.functions.invoke("generate-ai-clips", { body: { episodeId: selected, userPrompt: userPrompt.trim() || undefined } });
       if (error) throw error;
       const result = data as { error?: string; clips?: Clip[] };
       if (result?.error) throw new Error(result.error);
@@ -218,15 +221,19 @@ export default function AIClips() {
     if (!ep) return;
     if (ep.hosting === "native" && ep.media_url) {
       const kind = ep.media_kind === "video" ? "video" : "audio";
-      recordMediaClip(ep.media_url, c, ep.title, kind);
+      trimNativeClip(ep.media_url, c, ep.title, kind);
     } else {
-      // Embed (YouTube/Spotify): we cannot record cross-origin streams. Provide a deep link.
+      // Embed (YouTube/Spotify): browsers + platform terms block direct cross-origin downloads.
       const ytId = ep.embed_provider === "youtube" && ep.embed_url ? getYouTubeId(ep.embed_url) : null;
       const link = ytId
         ? `https://www.youtube.com/watch?v=${ytId}&t=${Math.floor(c.start_seconds)}s`
         : ep.embed_url ?? "";
+      toast.error(
+        "This episode is hosted on " + (ep.embed_provider ?? "an external platform") +
+        ". To download as MP4, re-upload the source file under Content → Upload from device.",
+        { id: "clip-dl", duration: 7000 }
+      );
       if (link) window.open(link, "_blank");
-      toast.message("Embedded media can't be recorded in-browser. Re-upload as native to download as MP4/WebM.");
     }
   };
 
@@ -243,13 +250,32 @@ export default function AIClips() {
       </header>
 
       <Card className="p-6 rounded-2xl space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Episode</label>
           <Select value={selected} onValueChange={setSelected}>
-            <SelectTrigger className="flex-1"><SelectValue placeholder="Pick an episode" /></SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Pick an episode" /></SelectTrigger>
             <SelectContent>
               {episodes.map((e) => <SelectItem key={e.id} value={e.id}>{e.title}</SelectItem>)}
             </SelectContent>
           </Select>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
+            <Lightbulb className="w-4 h-4 text-accent" />
+            What should the AI focus on? <span className="text-muted-foreground font-normal">(optional)</span>
+          </label>
+          <Textarea
+            value={userPrompt}
+            onChange={(e) => setUserPrompt(e.target.value)}
+            placeholder="e.g. Find the most emotional moments where the guest talks about overcoming failure. Or: Pull funny one-liners that work as TikTok hooks."
+            rows={3}
+            className="resize-none"
+          />
+          <p className="text-xs text-muted-foreground mt-1.5">Tell the AI which themes, moments, or angles to prioritize. Leave blank for general viral picks.</p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
           <Button onClick={generate} disabled={!selected || loading} className="bg-accent text-accent-foreground hover:bg-accent/90">
             {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Wand2 className="w-4 h-4 mr-1" />} Generate clips
           </Button>
@@ -264,6 +290,17 @@ export default function AIClips() {
             </>
           )}
         </div>
+
+        {ep?.hosting === "embed" && (
+          <div className="flex items-start gap-2 rounded-lg border border-accent/30 bg-accent/5 p-3 text-xs text-muted-foreground">
+            <ExternalLink className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+            <span>
+              This episode is hosted on <strong className="text-foreground capitalize">{ep.embed_provider ?? "an external platform"}</strong>.
+              Direct MP4 downloads aren't possible for embedded media. To download trimmed clips, re-upload the source file via <strong className="text-foreground">Content → Upload from device</strong>.
+            </span>
+          </div>
+        )}
+
         {episodes.length === 0 && <p className="text-sm text-muted-foreground">Create an episode first in Content.</p>}
       </Card>
 
