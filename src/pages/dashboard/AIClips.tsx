@@ -168,7 +168,7 @@ export default function AIClips() {
     if (!selected) { toast.error("Choose an episode"); return; }
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-ai-clips", { body: { episodeId: selected } });
+      const { data, error } = await supabase.functions.invoke("generate-ai-clips", { body: { episodeId: selected, userPrompt: userPrompt.trim() || undefined } });
       if (error) throw error;
       const result = data as { error?: string; clips?: Clip[] };
       if (result?.error) throw new Error(result.error);
