@@ -23,7 +23,7 @@ export function Logo({ size = "md", className = "", showPoweredBy = false }: Log
         </span>
         {showPoweredBy && (
           <span className={`mt-1 font-medium uppercase tracking-[0.18em] text-muted-foreground ${s.powered}`}>
-            Powered by iKAMBA
+            Powered by <span className="normal-case">iKAMBA</span>
           </span>
         )}
       </span>
