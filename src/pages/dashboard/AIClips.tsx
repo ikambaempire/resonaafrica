@@ -3,11 +3,14 @@ import { useMyEpisodes } from "@/hooks/useEpisodes";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Sparkles, Loader2, Wand2, Play, Pause, Clock, Scissors, FileText, Download, Save } from "lucide-react";
+import { Sparkles, Loader2, Wand2, Play, Pause, Clock, Scissors, FileText, Download, Save, Lightbulb, ExternalLink } from "lucide-react";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { fetchFile } from "@ffmpeg/util";
 
 interface Clip {
   title: string;
