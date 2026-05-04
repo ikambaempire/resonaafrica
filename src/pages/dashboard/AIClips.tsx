@@ -104,7 +104,9 @@ async function trimNativeClip(
     await ff.exec(args);
 
     const data = await ff.readFile(outName);
-    const blob = new Blob([data as Uint8Array], { type: kind === "video" ? "video/mp4" : "audio/mp4" });
+    const u8 = data as Uint8Array;
+    const buf = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) as ArrayBuffer;
+    const blob = new Blob([buf], { type: kind === "video" ? "video/mp4" : "audio/mp4" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `${safeName(baseName)}-${safeName(clip.title)}.${outExt}`;
