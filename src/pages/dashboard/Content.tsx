@@ -417,14 +417,23 @@ function EpisodeDialog({ userId, podcastId, editing, onClose }: { userId: string
           </div>
           {hosting === "native" ? (
             <div>
-              <Label>Media file (audio or video, no size limit)</Label>
+              <Label>Media file (audio or video)</Label>
               <div className="flex items-center gap-3 mt-1">
-                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card hover:bg-secondary cursor-pointer text-sm">
+                <label className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card text-sm ${uploading ? "opacity-60 cursor-not-allowed" : "hover:bg-secondary cursor-pointer"}`}>
                   <Upload className="w-4 h-4" /> {uploading ? "Uploading…" : mediaUrl ? "Replace file" : "Upload file"}
                   <input type="file" accept="audio/*,video/*" className="hidden" onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0])} disabled={uploading} />
                 </label>
-                {mediaUrl && <span className="text-xs text-success">✓ uploaded ({mediaKind})</span>}
+                {mediaUrl && !uploading && <span className="text-xs text-success">✓ uploaded ({mediaKind})</span>}
               </div>
+              {uploading && (
+                <div className="mt-3 space-y-1.5">
+                  <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+                    <div className="h-full bg-accent transition-all" style={{ width: `${uploadPct}%` }} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">{uploadMsg} {uploadPct}%</p>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-2">Tip: a 100 MB MP4 typically uploads in 1–3 min on a normal connection. Larger video files may take longer — keep this tab open.</p>
             </div>
           ) : (
             <>
