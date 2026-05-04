@@ -279,20 +279,49 @@ function EpisodeDialog({ userId, podcastId, editing, onClose }: { userId: string
   const [status, setStatus] = useState<"draft" | "scheduled" | "published">((editing?.status as "draft" | "scheduled" | "published") || "draft");
   const [scheduledAt, setScheduledAt] = useState(editing?.scheduled_at ? new Date(editing.scheduled_at).toISOString().slice(0, 16) : "");
   const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
+  const [uploadMsg, setUploadMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const create = useCreateEpisode();
   const update = useUpdateEpisode();
 
   const onUpload = async (file: File) => {
     setUploading(true);
+    setUploadPct(0);
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+    setUploadMsg(`Preparing ${sizeMb} MB…`);
     setMediaKind(file.type.startsWith("video/") ? "video" : "audio");
     const path = `${userId}/${podcastId}/${Date.now()}-${file.name.replace(/\s+/g, "-")}`;
-    const { error } = await supabase.storage.from("episode-media").upload(path, file, { upsert: false, contentType: file.type });
-    if (error) { toast.error(error.message); setUploading(false); return; }
-    const { data } = supabase.storage.from("episode-media").getPublicUrl(path);
-    setMediaUrl(data.publicUrl);
-    setUploading(false);
-    toast.success("Upload complete");
+    try {
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("episode-media")
+        .createSignedUploadUrl(path);
+      if (signErr || !signed) throw signErr || new Error("Could not create upload URL");
+
+      setUploadMsg(`Uploading ${sizeMb} MB…`);
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", signed.signedUrl, true);
+        xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+        xhr.setRequestHeader("x-upsert", "false");
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) setUploadPct(Math.round((ev.loaded / ev.total) * 100));
+        };
+        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed (${xhr.status})`)));
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+        xhr.send(file);
+      });
+
+      const { data } = supabase.storage.from("episode-media").getPublicUrl(path);
+      setMediaUrl(data.publicUrl);
+      setUploadPct(100);
+      toast.success("Upload complete");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setUploading(false);
+      setUploadMsg("");
+    }
   };
 
   const onCoverUpload = async (file: File) => {
