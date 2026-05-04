@@ -218,15 +218,19 @@ export default function AIClips() {
     if (!ep) return;
     if (ep.hosting === "native" && ep.media_url) {
       const kind = ep.media_kind === "video" ? "video" : "audio";
-      recordMediaClip(ep.media_url, c, ep.title, kind);
+      trimNativeClip(ep.media_url, c, ep.title, kind);
     } else {
-      // Embed (YouTube/Spotify): we cannot record cross-origin streams. Provide a deep link.
+      // Embed (YouTube/Spotify): browsers + platform terms block direct cross-origin downloads.
       const ytId = ep.embed_provider === "youtube" && ep.embed_url ? getYouTubeId(ep.embed_url) : null;
       const link = ytId
         ? `https://www.youtube.com/watch?v=${ytId}&t=${Math.floor(c.start_seconds)}s`
         : ep.embed_url ?? "";
+      toast.error(
+        "This episode is hosted on " + (ep.embed_provider ?? "an external platform") +
+        ". To download as MP4, re-upload the source file under Content → Upload from device.",
+        { id: "clip-dl", duration: 7000 }
+      );
       if (link) window.open(link, "_blank");
-      toast.message("Embedded media can't be recorded in-browser. Re-upload as native to download as MP4/WebM.");
     }
   };
 
