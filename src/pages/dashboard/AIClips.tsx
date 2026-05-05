@@ -408,11 +408,18 @@ export default function AIClips() {
       )}
 
       {ep?.hosting === "native" && ep.media_url && (
-        ep.media_kind === "video" ? (
-          <video ref={videoRef} src={ep.media_url} controls className={previewIndex !== null ? "w-full rounded-xl" : "hidden"} />
-        ) : (
-          <audio ref={audioRef} src={ep.media_url} controls className={previewIndex !== null ? "w-full" : "hidden"} />
-        )
+        <div className={previewIndex !== null ? "flex justify-center" : "hidden"}>
+          {ep.media_kind === "video" ? (
+            <video
+              ref={videoRef}
+              src={ep.media_url}
+              controls
+              className="rounded-xl border border-border bg-black w-full max-w-sm aspect-video"
+            />
+          ) : (
+            <audio ref={audioRef} src={ep.media_url} controls className="w-full max-w-md" />
+          )}
+        </div>
       )}
 
       {step === 3 && ep?.transcript && (
