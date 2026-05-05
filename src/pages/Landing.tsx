@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { PublicNav } from "@/components/PublicNav";
 import { Footer } from "@/components/Footer";
 import { NewReleases } from "@/components/NewReleases";
+import { MockupCarousel } from "@/components/MockupCarousel";
 import heroBg from "@/assets/hero-resona-bg.png";
 import realStoriesImg from "@/assets/real-stories.jpg";
 
@@ -141,6 +142,9 @@ const Landing = () => {
 
       {/* NEW RELEASES */}
       <NewReleases />
+
+      {/* DEVICE MOCKUP CAROUSEL — phones & tablets showing dashboard features */}
+      <MockupCarousel />
 
       {/* TWO-CARD SOLUTION SUMMARY — 90seconds pattern */}
       <section className="py-20 lg:py-28 border-t border-border/40">
