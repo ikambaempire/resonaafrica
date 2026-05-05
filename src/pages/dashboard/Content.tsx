@@ -178,6 +178,7 @@ function PodcastDialog({ userId, editing, onClose }: { userId: string; editing?:
   const [saving, setSaving] = useState(false);
   const create = useCreatePodcast();
   const update = useUpdatePodcast();
+  const { data: dbCategories = [] } = useCategories();
 
   const onUpload = async (file: File) => {
     setUploading(true);
