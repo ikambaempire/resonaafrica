@@ -15,12 +15,14 @@ import {
   Settings,
   LogOut,
   ArrowLeft,
+  FolderTree,
 } from "lucide-react";
 
 const navItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard, end: true },
   { title: "Users", url: "/admin/users", icon: Users },
   { title: "Podcasts", url: "/admin/podcasts", icon: Mic2 },
+  { title: "Categories", url: "/admin/categories", icon: FolderTree },
   { title: "Roles", url: "/admin/roles", icon: ShieldCheck },
   { title: "Revenue", url: "/admin/revenue", icon: CreditCard },
   { title: "Announcements", url: "/admin/announcements", icon: Megaphone },
