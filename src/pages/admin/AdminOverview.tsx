@@ -23,13 +23,22 @@ export default function AdminOverview() {
   const { data: stats } = useQuery({
     queryKey: ["admin-overview-stats"],
     queryFn: async () => {
-      const [{ count: users }, { count: roles }] = await Promise.all([
+      const [{ count: users }, { count: roles }, { count: podcasts }, { count: episodes }] = await Promise.all([
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("user_roles").select("*", { count: "exact", head: true }),
+        supabase.from("podcasts").select("*", { count: "exact", head: true }),
+        supabase.from("episodes").select("*", { count: "exact", head: true }),
       ]);
-      return { users: users ?? 0, roles: roles ?? 0 };
+      return { users: users ?? 0, roles: roles ?? 0, podcasts: podcasts ?? 0, episodes: episodes ?? 0 };
     },
   });
+
+  const liveKpis = [
+    { label: "Total Accounts", value: stats?.users ?? "…", icon: Users, hint: "Registered users" },
+    { label: "Podcasts", value: stats?.podcasts ?? "…", icon: Mic2, hint: "Live shows" },
+    { label: "Episodes", value: stats?.episodes ?? "…", icon: Play, hint: "Across the platform" },
+    { label: "Role assignments", value: stats?.roles ?? "…", icon: Activity, hint: "Admin / editor / etc." },
+  ];
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
@@ -39,42 +48,38 @@ export default function AdminOverview() {
         <p className="mt-2 text-muted-foreground">Real-time signals across the Resona Africa network.</p>
       </header>
 
-      {/* KPI cards */}
+      {/* Live KPI cards (real data) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((s) => (
+        {liveKpis.map((s) => (
           <Card key={s.label} className="rounded-2xl border-border/60 bg-card p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
                 <s.icon className="w-5 h-5 text-accent" />
               </div>
-              <span className="flex items-center gap-0.5 text-xs font-semibold text-success">
-                <TrendingUp className="w-3 h-3" /> {s.change}
-              </span>
             </div>
             <p className="text-3xl font-display font-bold text-foreground">{s.value}</p>
             <p className="text-xs text-muted-foreground mt-1 uppercase tracking-[0.14em]">{s.label}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">{s.hint}</p>
           </Card>
         ))}
       </div>
 
-      {/* Real DB stats */}
-      <div className="grid sm:grid-cols-2 gap-4">
-        <Card className="rounded-2xl border-border/60 p-6 bg-gradient-to-br from-card to-secondary/30">
-          <div className="flex items-center gap-3 mb-3">
-            <Users className="w-5 h-5 text-accent" />
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Live count from database</p>
-          </div>
-          <p className="font-display font-bold text-4xl text-foreground">{stats?.users ?? "…"}</p>
-          <p className="text-sm text-muted-foreground mt-1">Registered profiles</p>
-        </Card>
-        <Card className="rounded-2xl border-border/60 p-6 bg-gradient-to-br from-card to-secondary/30">
-          <div className="flex items-center gap-3 mb-3">
-            <Activity className="w-5 h-5 text-accent" />
-            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Live count from database</p>
-          </div>
-          <p className="font-display font-bold text-4xl text-foreground">{stats?.roles ?? "…"}</p>
-          <p className="text-sm text-muted-foreground mt-1">Total role assignments</p>
-        </Card>
+      {/* Sample / illustrative KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {kpis.map((s) => (
+          <Card key={s.label} className="rounded-2xl border-border/60 bg-card/50 p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                <s.icon className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <span className="flex items-center gap-0.5 text-xs font-semibold text-success">
+                <TrendingUp className="w-3 h-3" /> {s.change}
+              </span>
+            </div>
+            <p className="text-2xl font-display font-bold text-foreground/80">{s.value}</p>
+            <p className="text-xs text-muted-foreground mt-1 uppercase tracking-[0.14em]">{s.label}</p>
+          </Card>
+        ))}
       </div>
 
       {/* Recent activity + quick actions */}

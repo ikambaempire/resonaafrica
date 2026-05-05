@@ -1,14 +1,15 @@
 import { PublicNav } from "@/components/PublicNav";
 import { Footer } from "@/components/Footer";
 import { usePublicPodcasts } from "@/hooks/usePodcasts";
+import { useCategories } from "@/hooks/useCategories";
 import { Card } from "@/components/ui/card";
 import { Link, useSearchParams } from "react-router-dom";
 import { Mic2, Loader2, Compass, ArrowLeft } from "lucide-react";
-import { CATEGORIES, getCategory } from "@/lib/categories";
 import { useMemo } from "react";
 
 export default function Discover() {
   const { data: podcasts = [], isLoading } = usePublicPodcasts();
+  const { data: categories = [] } = useCategories();
   const [params, setParams] = useSearchParams();
   const activeSlug = params.get("category");
 
@@ -19,7 +20,7 @@ export default function Discover() {
   }, [podcasts]);
 
   const filtered = activeSlug ? podcasts.filter((p) => (p.category || "").toLowerCase() === activeSlug) : [];
-  const activeCat = getCategory(activeSlug);
+  const activeCat = categories.find((c) => c.slug === activeSlug);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -44,7 +45,7 @@ export default function Discover() {
             <>
               <h2 className="font-display font-bold text-2xl mb-5">Browse by category</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-                {CATEGORIES.map((c) => {
+                {categories.map((c) => {
                   const n = counts.get(c.slug) || 0;
                   return (
                     <button
@@ -53,8 +54,12 @@ export default function Discover() {
                       className="group text-left"
                     >
                       <Card className="overflow-hidden rounded-2xl border-border/60 transition-all hover:-translate-y-1 hover:shadow-gold">
-                        <div className="relative aspect-[4/3] overflow-hidden">
-                          <img src={c.thumbnail} alt={c.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <div className="relative aspect-[4/3] overflow-hidden bg-secondary/40">
+                          {c.thumbnail_url ? (
+                            <img src={c.thumbnail_url} alt={c.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-5xl">{c.emoji ?? "🎙️"}</div>
+                          )}
                           <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/30 to-transparent" />
                           <div className="absolute bottom-3 left-3 right-3">
                             <p className="font-display font-bold text-lg text-foreground">{c.name}</p>
@@ -110,7 +115,7 @@ function PodcastCard({ p }: { p: { id: string; slug: string; title: string; desc
         )}
         <div className="p-4">
           <p className="font-display font-bold text-foreground line-clamp-1 group-hover:text-accent transition-colors">{p.title}</p>
-          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{p.description || getCategory(p.category)?.name || p.category}</p>
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{p.description || p.category}</p>
         </div>
       </Card>
     </Link>
