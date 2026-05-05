@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Plus, Mic2, Edit, Trash2, ExternalLink, Upload, Loader2, Image as ImageIcon, Link2, FileVideo } from "lucide-react";
 import { Link } from "react-router-dom";
-import { CATEGORIES } from "@/lib/categories";
+import { useCategories } from "@/hooks/useCategories";
 
 export default function Content() {
   const { user } = useAuth();
@@ -235,7 +235,7 @@ function PodcastDialog({ userId, editing, onClose }: { userId: string; editing?:
             <Select value={category || undefined} onValueChange={setCategory}>
               <SelectTrigger><SelectValue placeholder="Pick a category" /></SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map((c) => (
+                {dbCategories.map((c) => (
                   <SelectItem key={c.slug} value={c.slug}>{c.emoji} {c.name}</SelectItem>
                 ))}
               </SelectContent>
