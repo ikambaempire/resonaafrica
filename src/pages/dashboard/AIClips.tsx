@@ -64,8 +64,21 @@ async function trimNativeClip(
 ) {
   toast.loading(`Preparing ${kind} clip…`, { id: "clip-dl" });
   try {
+    if (!mediaUrl) throw new Error("Episode has no source media URL.");
+
+    // Pre-flight: try a HEAD/GET to surface CORS/network issues early with a clear message.
+    try {
+      const probe = await fetch(mediaUrl, { method: "GET", mode: "cors" });
+      if (!probe.ok) throw new Error(`Source returned HTTP ${probe.status}. Re-upload the file under Content.`);
+    } catch (netErr) {
+      throw new Error(
+        "Couldn't read the source file (likely a network or CORS block). " +
+        "Re-upload the original file under Content → Upload from device, then try again. " +
+        `(${(netErr as Error).message || "network error"})`
+      );
+    }
+
     const ff = await getFFmpeg();
-    // Guess input extension from URL (fallback to mp4/mp3)
     const urlNoQuery = mediaUrl.split("?")[0];
     const inExtMatch = urlNoQuery.match(/\.([a-z0-9]{3,4})$/i);
     const inExt = inExtMatch ? inExtMatch[1].toLowerCase() : (kind === "video" ? "mp4" : "mp3");
@@ -74,7 +87,8 @@ async function trimNativeClip(
     const outName = `clip.${outExt}`;
 
     toast.loading(`Downloading source…`, { id: "clip-dl" });
-    await ff.writeFile(inName, await fetchFile(mediaUrl));
+    const fileData = await fetchFile(mediaUrl);
+    await ff.writeFile(inName, fileData);
 
     const start = Math.max(0, clip.start_seconds);
     const dur = Math.max(0.1, clip.end_seconds - clip.start_seconds);
@@ -107,19 +121,22 @@ async function trimNativeClip(
     const u8 = data as Uint8Array;
     const buf = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) as ArrayBuffer;
     const blob = new Blob([buf], { type: kind === "video" ? "video/mp4" : "audio/mp4" });
+    if (blob.size === 0) throw new Error("FFmpeg produced an empty file. Try a different time range.");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `${safeName(baseName)}-${safeName(clip.title)}.${outExt}`;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     URL.revokeObjectURL(a.href);
 
-    // Cleanup virtual FS
     try { await ff.deleteFile(inName); await ff.deleteFile(outName); } catch { /* ignore */ }
 
     toast.success(`Clip downloaded as .${outExt}`, { id: "clip-dl" });
   } catch (e) {
-    console.error(e);
-    toast.error("Couldn't cut the clip: " + (e as Error).message, { id: "clip-dl" });
+    console.error("[AIClips] trimNativeClip failed:", e);
+    const msg = (e instanceof Error && e.message) ? e.message : (typeof e === "string" ? e : JSON.stringify(e));
+    toast.error("Couldn't cut the clip: " + (msg || "unknown error"), { id: "clip-dl", duration: 8000 });
   }
 }
 
