@@ -54,8 +54,67 @@ async function getFFmpeg(onLog?: (msg: string) => void): Promise<FFmpeg> {
 }
 
 /**
+ * Fallback: cut the clip in real-time using a hidden <video> + MediaRecorder.
+ * This works even when ffmpeg.wasm fetch fails, because <video> can play cross-origin
+ * media without needing a CORS-readable response (we only read the captured stream,
+ * which Supabase public buckets DO allow with crossOrigin="anonymous").
+ */
+async function trimWithMediaRecorder(mediaUrl: string, clip: Clip, baseName: string, kind: "video" | "audio") {
+  return new Promise<void>((resolve, reject) => {
+    const el = document.createElement(kind === "video" ? "video" : "audio") as HTMLMediaElement;
+    el.crossOrigin = "anonymous";
+    el.src = mediaUrl;
+    el.muted = false;
+    (el as HTMLVideoElement).playsInline = true;
+    el.preload = "auto";
+
+    const cleanup = () => { try { el.pause(); el.src = ""; el.remove(); } catch { /* */ } };
+
+    const onError = () => { cleanup(); reject(new Error("Browser couldn't load the source media for recording.")); };
+    el.addEventListener("error", onError);
+
+    el.addEventListener("loadedmetadata", async () => {
+      try {
+        // @ts-expect-error captureStream exists on HTMLMediaElement in modern browsers
+        const stream: MediaStream = el.captureStream ? el.captureStream() : el.mozCaptureStream();
+        if (!stream) throw new Error("This browser doesn't support media capture.");
+        const mime = kind === "video"
+          ? (MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus") ? "video/webm;codecs=vp9,opus" : "video/webm")
+          : (MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm");
+        const chunks: BlobPart[] = [];
+        const rec = new MediaRecorder(stream, { mimeType: mime });
+        rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+        rec.onstop = () => {
+          const blob = new Blob(chunks, { type: mime });
+          const ext = kind === "video" ? "webm" : "webm";
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = `${safeName(baseName)}-${safeName(clip.title)}.${ext}`;
+          document.body.appendChild(a); a.click(); a.remove();
+          URL.revokeObjectURL(a.href);
+          cleanup();
+          resolve();
+        };
+
+        el.currentTime = clip.start_seconds;
+        await el.play();
+        rec.start();
+        const stopAt = () => {
+          if (el.currentTime >= clip.end_seconds) {
+            el.removeEventListener("timeupdate", stopAt);
+            rec.stop();
+          }
+        };
+        el.addEventListener("timeupdate", stopAt);
+      } catch (err) { cleanup(); reject(err); }
+    }, { once: true });
+  });
+}
+
+/**
  * Precisely trim a native (CORS-accessible) media URL into a real MP4 / M4A clip.
  * Uses ffmpeg.wasm — produces a true cut file (no real-time recording).
+ * Falls back to MediaRecorder (.webm) if FFmpeg can't fetch the source.
  */
 async function trimNativeClip(
   mediaUrl: string,
@@ -63,22 +122,11 @@ async function trimNativeClip(
   baseName: string,
   kind: "video" | "audio"
 ) {
-  toast.loading(`Preparing ${kind} clip…`, { id: "clip-dl" });
+  if (!mediaUrl) throw new Error("Episode has no source media URL.");
+
+  // Try FFmpeg path first.
   try {
-    if (!mediaUrl) throw new Error("Episode has no source media URL.");
-
-    // Pre-flight: try a HEAD/GET to surface CORS/network issues early with a clear message.
-    try {
-      const probe = await fetch(mediaUrl, { method: "GET", mode: "cors" });
-      if (!probe.ok) throw new Error(`Source returned HTTP ${probe.status}. Re-upload the file under Content.`);
-    } catch (netErr) {
-      throw new Error(
-        "Couldn't read the source file (likely a network or CORS block). " +
-        "Re-upload the original file under Content → Upload from device, then try again. " +
-        `(${(netErr as Error).message || "network error"})`
-      );
-    }
-
+    toast.loading("Loading FFmpeg engine…", { id: "clip-dl" });
     const ff = await getFFmpeg();
     const urlNoQuery = mediaUrl.split("?")[0];
     const inExtMatch = urlNoQuery.match(/\.([a-z0-9]{3,4})$/i);
@@ -87,35 +135,26 @@ async function trimNativeClip(
     const outExt = kind === "video" ? "mp4" : "m4a";
     const outName = `clip.${outExt}`;
 
-    toast.loading(`Downloading source…`, { id: "clip-dl" });
-    const fileData = await fetchFile(mediaUrl);
+    toast.loading("Downloading source…", { id: "clip-dl" });
+    let fileData: Uint8Array;
+    try {
+      fileData = await fetchFile(mediaUrl);
+    } catch (netErr) {
+      const msg = (netErr as Error)?.message || "network";
+      throw new Error(`FETCH_FAILED: ${msg}`);
+    }
     await ff.writeFile(inName, fileData);
 
     const start = Math.max(0, clip.start_seconds);
     const dur = Math.max(0.1, clip.end_seconds - clip.start_seconds);
 
-    toast.loading(`Cutting clip with FFmpeg…`, { id: "clip-dl" });
+    toast.loading("Cutting clip with FFmpeg…", { id: "clip-dl" });
     const args = kind === "video"
-      ? [
-          "-ss", String(start),
-          "-i", inName,
-          "-t", String(dur),
-          "-c:v", "libx264",
-          "-preset", "veryfast",
-          "-crf", "23",
-          "-c:a", "aac",
-          "-b:a", "128k",
-          "-movflags", "+faststart",
-          outName,
-        ]
-      : [
-          "-ss", String(start),
-          "-i", inName,
-          "-t", String(dur),
-          "-c:a", "aac",
-          "-b:a", "192k",
-          outName,
-        ];
+      ? ["-ss", String(start), "-i", inName, "-t", String(dur),
+         "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+         "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", outName]
+      : ["-ss", String(start), "-i", inName, "-t", String(dur),
+         "-c:a", "aac", "-b:a", "192k", outName];
     await ff.exec(args);
 
     const data = await ff.readFile(outName);
@@ -126,18 +165,29 @@ async function trimNativeClip(
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `${safeName(baseName)}-${safeName(clip.title)}.${outExt}`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+    document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(a.href);
 
     try { await ff.deleteFile(inName); await ff.deleteFile(outName); } catch { /* ignore */ }
 
     toast.success(`Clip downloaded as .${outExt}`, { id: "clip-dl" });
+    return;
   } catch (e) {
-    console.error("[AIClips] trimNativeClip failed:", e);
-    const msg = (e instanceof Error && e.message) ? e.message : (typeof e === "string" ? e : JSON.stringify(e));
-    toast.error("Couldn't cut the clip: " + (msg || "unknown error"), { id: "clip-dl", duration: 8000 });
+    const msg = (e as Error)?.message || "";
+    console.warn("[AIClips] FFmpeg path failed, attempting MediaRecorder fallback:", msg);
+    if (msg.startsWith("FETCH_FAILED")) {
+      // Try MediaRecorder fallback — works even when fetch is blocked.
+      try {
+        toast.loading(`Recording clip in real-time (${Math.ceil(clip.end_seconds - clip.start_seconds)}s)…`, { id: "clip-dl" });
+        await trimWithMediaRecorder(mediaUrl, clip, baseName, kind);
+        toast.success("Clip downloaded as .webm (real-time capture)", { id: "clip-dl" });
+        return;
+      } catch (recErr) {
+        console.error("[AIClips] MediaRecorder fallback failed:", recErr);
+        throw new Error((recErr as Error)?.message || "Both FFmpeg and recorder fallback failed.");
+      }
+    }
+    throw e instanceof Error ? e : new Error(String(e));
   }
 }
 
