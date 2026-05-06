@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Mail, MapPin, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Contact() {
   const { toast } = useToast();
@@ -15,11 +16,18 @@ export default function Contact() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    // UI-only — wire to backend later.
-    await new Promise((r) => setTimeout(r, 600));
+    const { error } = await supabase.from("contact_messages").insert({
+      name: form.name.trim(),
+      email: form.email.trim(),
+      message: form.message.trim(),
+    });
+    setSubmitting(false);
+    if (error) {
+      toast({ title: "Couldn't send", description: error.message, variant: "destructive" });
+      return;
+    }
     toast({ title: "Message sent", description: "We'll get back to you within 2 business days." });
     setForm({ name: "", email: "", message: "" });
-    setSubmitting(false);
   };
 
   return (
