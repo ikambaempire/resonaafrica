@@ -16,11 +16,13 @@ import {
   LogOut,
   ArrowLeft,
   FolderTree,
+  Inbox,
 } from "lucide-react";
 
 const navItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard, end: true },
   { title: "Users", url: "/admin/users", icon: Users },
+  { title: "Messages", url: "/admin/messages", icon: Inbox },
   { title: "Podcasts", url: "/admin/podcasts", icon: Mic2 },
   { title: "Categories", url: "/admin/categories", icon: FolderTree },
   { title: "Roles", url: "/admin/roles", icon: ShieldCheck },

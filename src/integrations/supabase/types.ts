@@ -115,6 +115,39 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          handled_at: string | null
+          id: string
+          is_read: boolean
+          message: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          handled_at?: string | null
+          id?: string
+          is_read?: boolean
+          message: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          handled_at?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       episode_plays: {
         Row: {
           anon_id: string | null
