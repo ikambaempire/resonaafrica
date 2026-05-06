@@ -334,8 +334,8 @@ const Landing = () => {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((f) => (
               <div key={f.title} className="rounded-2xl bg-card border border-border/60 p-7 hover:border-accent/40 transition-colors">
-                <div className="w-11 h-11 rounded-xl gradient-gold flex items-center justify-center mb-5">
-                  <f.icon className="w-5 h-5 text-primary" />
+                <div className="w-11 h-11 rounded-xl bg-foreground flex items-center justify-center mb-5">
+                  <f.icon className="w-5 h-5 text-accent" />
                 </div>
                 <h3 className="font-display font-bold text-xl text-foreground mb-2">{f.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{f.body}</p>
@@ -356,8 +356,8 @@ const Landing = () => {
           </div>
           <div className="grid md:grid-cols-2 gap-5">
             <div className="rounded-3xl bg-card border border-border/60 p-8 lg:p-10">
-              <div className="w-12 h-12 rounded-xl gradient-gold flex items-center justify-center mb-5">
-                <Users className="w-5 h-5 text-primary" />
+              <div className="w-12 h-12 rounded-xl bg-foreground flex items-center justify-center mb-5">
+                <Users className="w-5 h-5 text-accent" />
               </div>
               <h3 className="font-display font-bold text-2xl text-foreground mb-4">Creators & Influencers</h3>
               <ul className="space-y-2 text-muted-foreground">
@@ -370,8 +370,8 @@ const Landing = () => {
               </Button>
             </div>
             <div className="rounded-3xl bg-card border border-border/60 p-8 lg:p-10">
-              <div className="w-12 h-12 rounded-xl bg-secondary border border-border flex items-center justify-center mb-5">
-                <Building2 className="w-5 h-5 text-foreground" />
+              <div className="w-12 h-12 rounded-xl bg-foreground flex items-center justify-center mb-5">
+                <Building2 className="w-5 h-5 text-accent" />
               </div>
               <h3 className="font-display font-bold text-2xl text-foreground mb-4">Organizations & Brands</h3>
               <ul className="space-y-2 text-muted-foreground">
