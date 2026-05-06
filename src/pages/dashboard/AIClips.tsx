@@ -217,6 +217,8 @@ export default function AIClips() {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [draftClips, setDraftClips] = useState<Clip[]>([]);
   const [saving, setSaving] = useState(false);
+  const [downloadingIndex, setDownloadingIndex] = useState<number | null>(null);
+  const [downloadError, setDownloadError] = useState<{ index: number; message: string } | null>(null);
   const ep = episodes.find((e) => e.id === selected);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -289,22 +291,32 @@ export default function AIClips() {
     toast.success("Clip edits saved");
   };
 
-  const downloadClip = (c: Clip) => {
+  const downloadClip = async (c: Clip, index: number) => {
     if (!ep) return;
+    setDownloadError(null);
     if (ep.hosting === "native" && ep.media_url) {
       const kind = ep.media_kind === "video" ? "video" : "audio";
-      trimNativeClip(ep.media_url, c, ep.title, kind);
+      setDownloadingIndex(index);
+      try {
+        await trimNativeClip(ep.media_url, c, ep.title, kind);
+      } catch (e) {
+        const msg = (e as Error)?.message || "Unknown error";
+        console.error("[AIClips] download failed:", e);
+        setDownloadError({ index, message: msg });
+        toast.error("Download failed — see details below the clip.", { id: "clip-dl", duration: 5000 });
+      } finally {
+        setDownloadingIndex(null);
+      }
     } else {
       // Embed (YouTube/Spotify): browsers + platform terms block direct cross-origin downloads.
       const ytId = ep.embed_provider === "youtube" && ep.embed_url ? getYouTubeId(ep.embed_url) : null;
       const link = ytId
         ? `https://www.youtube.com/watch?v=${ytId}&t=${Math.floor(c.start_seconds)}s`
         : ep.embed_url ?? "";
-      toast.error(
-        "This episode is hosted on " + (ep.embed_provider ?? "an external platform") +
-        ". To download as MP4, re-upload the source file under Content → Upload from device.",
-        { id: "clip-dl", duration: 7000 }
-      );
+      setDownloadError({
+        index,
+        message: `This episode is hosted on ${ep.embed_provider ?? "an external platform"}. Direct video downloads aren't possible for embeds. Re-upload the source file under Content → Upload from device to enable MP4 export.`,
+      });
       if (link) window.open(link, "_blank");
     }
   };
