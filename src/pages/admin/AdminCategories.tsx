@@ -102,7 +102,7 @@ export default function AdminCategories() {
       )}
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && close()}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing?.id ? "Edit category" : "New category"}</DialogTitle>
           </DialogHeader>
