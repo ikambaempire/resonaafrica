@@ -559,10 +559,41 @@ export default function AIClips() {
                         <Play className="w-3.5 h-3.5 mr-1" /> Preview
                       </Button>
                     ) : null}
-                    <Button size="sm" variant="outline" onClick={() => downloadClip(c)}>
-                      <Download className="w-3.5 h-3.5 mr-1" /> Download clip
+                    <Button size="sm" variant="outline" onClick={() => downloadClip(c, i)} disabled={downloadingIndex === i}>
+                      {downloadingIndex === i ? (
+                        <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Preparing…</>
+                      ) : (
+                        <><Download className="w-3.5 h-3.5 mr-1" /> Download clip</>
+                      )}
                     </Button>
                   </div>
+
+                  {downloadError?.index === i && (
+                    <Alert variant="destructive" className="mt-1">
+                      <AlertTriangle className="w-4 h-4" />
+                      <AlertTitle>Couldn't download this clip</AlertTitle>
+                      <AlertDescription className="space-y-2">
+                        <p className="text-sm">Try these quick checks, then hit Retry:</p>
+                        <ul className="list-disc pl-5 text-xs space-y-1">
+                          <li>Check your internet connection.</li>
+                          <li>Disable ad-blockers or privacy extensions for this site.</li>
+                          <li>If the source file was deleted, re-upload it under <strong>Content → Upload from device</strong>.</li>
+                          <li>Try a different browser (Chrome / Edge work best for FFmpeg).</li>
+                        </ul>
+                        <details className="text-[11px] opacity-80">
+                          <summary className="cursor-pointer">Technical details</summary>
+                          <code className="block mt-1 break-all">{downloadError.message}</code>
+                        </details>
+                        <div className="flex gap-2 pt-1">
+                          <Button size="sm" onClick={() => downloadClip(c, i)} disabled={downloadingIndex === i}
+                            className="bg-accent text-accent-foreground hover:bg-accent/90">
+                            <RefreshCw className="w-3.5 h-3.5 mr-1" /> Retry download
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setDownloadError(null)}>Dismiss</Button>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
 
                   {ytId && isActive && (
                     <iframe
