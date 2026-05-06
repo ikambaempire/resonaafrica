@@ -8,7 +8,8 @@ import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Sparkles, Loader2, Wand2, Play, Pause, Clock, Scissors, FileText, Download, Save, Lightbulb, ExternalLink } from "lucide-react";
+import { Sparkles, Loader2, Wand2, Play, Pause, Clock, Scissors, FileText, Download, Save, Lightbulb, ExternalLink, AlertTriangle, RefreshCw } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 
