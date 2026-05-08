@@ -416,24 +416,24 @@ const Landing = () => {
       {/* CTA */}
       <section className="py-24 lg:py-32 border-t border-border/40">
         <div className="max-w-5xl mx-auto px-6 lg:px-8">
-          <div className="relative rounded-3xl gradient-gold p-12 lg:p-20 text-center overflow-hidden shadow-gold">
-            <div className="absolute inset-0 opacity-10">
-              <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full bg-primary blur-3xl" />
-              <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full bg-primary blur-3xl" />
+          <div className="relative rounded-3xl bg-black p-12 lg:p-20 text-center overflow-hidden shadow-soft border border-accent/20">
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full bg-accent blur-3xl" />
+              <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full bg-accent blur-3xl" />
             </div>
             <div className="relative">
-              <Radio className="w-10 h-10 text-primary mx-auto mb-4" />
-              <h2 className="font-display font-bold text-4xl lg:text-6xl tracking-tight text-primary">
+              <Radio className="w-10 h-10 text-accent mx-auto mb-4" />
+              <h2 className="font-display font-bold text-4xl lg:text-6xl tracking-tight text-white">
                 Start your podcast today.
               </h2>
-              <p className="mt-5 text-primary/80 text-lg max-w-xl mx-auto">
+              <p className="mt-5 text-white/70 text-lg max-w-xl mx-auto">
                 Join the next generation of African podcasters. Free to start, with expert support every step of the way.
               </p>
               <div className="mt-9 flex flex-col sm:flex-row gap-3 justify-center">
-                <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full font-semibold text-base h-12 px-8">
+                <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full font-semibold text-base h-12 px-8 shadow-gold">
                   <Link to="/auth">Create account <ArrowRight className="w-4 h-4 ml-1" /></Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="rounded-full font-semibold text-base h-12 px-8 bg-transparent border-primary/40 text-primary hover:bg-primary/10">
+                <Button asChild size="lg" variant="outline" className="rounded-full font-semibold text-base h-12 px-8 bg-transparent border-white/30 text-white hover:bg-white/10 hover:text-white">
                   <Link to="/contact">Book a consultation</Link>
                 </Button>
               </div>
