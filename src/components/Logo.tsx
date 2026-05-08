@@ -1,4 +1,4 @@
-import logoGlyph from "@/assets/amplify-logo.png";
+import logoGlyph from "@/assets/resona-logo.png";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -7,9 +7,9 @@ interface LogoProps {
 }
 
 const sizes = {
-  sm: { glyph: "w-7 h-7", text: "text-lg", powered: "text-[9px]" },
-  md: { glyph: "w-9 h-9", text: "text-[22px]", powered: "text-[10px]" },
-  lg: { glyph: "w-12 h-12", text: "text-3xl", powered: "text-xs" },
+  sm: { glyph: "w-9 h-9", text: "text-lg", powered: "text-[9px]" },
+  md: { glyph: "w-11 h-11", text: "text-[22px]", powered: "text-[10px]" },
+  lg: { glyph: "w-14 h-14", text: "text-3xl", powered: "text-xs" },
 };
 
 export function Logo({ size = "md", className = "", showPoweredBy = false }: LogoProps) {
