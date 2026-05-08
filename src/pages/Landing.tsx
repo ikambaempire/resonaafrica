@@ -23,7 +23,7 @@ import { PublicNav } from "@/components/PublicNav";
 import { Footer } from "@/components/Footer";
 import { NewReleases } from "@/components/NewReleases";
 import { MockupCarousel } from "@/components/MockupCarousel";
-import heroBg from "@/assets/hero-resona-bg.png";
+import heroBg from "@/assets/hero-resona-bg.jpg";
 import realStoriesImg from "@/assets/real-stories.jpg";
 
 const partnerLogos = [
