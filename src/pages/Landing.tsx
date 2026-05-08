@@ -23,6 +23,7 @@ import { PublicNav } from "@/components/PublicNav";
 import { Footer } from "@/components/Footer";
 import { NewReleases } from "@/components/NewReleases";
 import { MockupCarousel } from "@/components/MockupCarousel";
+import { HeroCarousel } from "@/components/HeroCarousel";
 import heroBg from "@/assets/hero-resona-bg.jpg";
 import realStoriesImg from "@/assets/real-stories.jpg";
 
@@ -99,7 +100,7 @@ const Landing = () => {
           aria-hidden
         />
         <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-background/30 lg:from-background/90 lg:via-background/50 lg:to-transparent" aria-hidden />
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 pt-20 pb-16 lg:pt-32 lg:pb-28 min-h-[640px] lg:min-h-[760px] flex flex-col justify-center">
+        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 pt-20 pb-16 lg:pt-32 lg:pb-28 min-h-[640px] lg:min-h-[760px] grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
