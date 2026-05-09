@@ -136,7 +136,7 @@ export function HeroTopPodcasts() {
         </div>
 
         <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-          <p className="text-[11px] text-foreground/60">Auto-ranked by total plays</p>
+          <p className="text-[11px] text-foreground/60">Auto-ranked by total views</p>
           <Link to="/discover" className="text-[11px] font-semibold text-accent hover:underline">Browse all →</Link>
         </div>
       </div>
