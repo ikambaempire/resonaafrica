@@ -341,6 +341,7 @@ export type Database = {
           description: string | null
           explicit: boolean
           id: string
+          is_featured: boolean
           is_published: boolean
           language: string | null
           owner_id: string
@@ -355,6 +356,7 @@ export type Database = {
           description?: string | null
           explicit?: boolean
           id?: string
+          is_featured?: boolean
           is_published?: boolean
           language?: string | null
           owner_id: string
@@ -369,6 +371,7 @@ export type Database = {
           description?: string | null
           explicit?: boolean
           id?: string
+          is_featured?: boolean
           is_published?: boolean
           language?: string | null
           owner_id?: string

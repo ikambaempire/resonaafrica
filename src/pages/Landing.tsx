@@ -24,6 +24,7 @@ import { Footer } from "@/components/Footer";
 import { NewReleases } from "@/components/NewReleases";
 import { MockupCarousel } from "@/components/MockupCarousel";
 import { HeroTopPodcasts } from "@/components/HeroTopPodcasts";
+import { FeaturedPodcasts } from "@/components/FeaturedPodcasts";
 import heroBg from "@/assets/hero-resona-bg.jpg";
 import realStoriesImg from "@/assets/real-stories.jpg";
 
@@ -229,51 +230,8 @@ const Landing = () => {
         </div>
       </section>
 
-      {/* SELF-SERVE CATALOG GRID — 90seconds product card pattern */}
-      <section className="py-24 lg:py-32 border-t border-border/40 bg-secondary/20">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6 mb-14">
-            <div className="max-w-2xl">
-              <span className="text-xs uppercase tracking-[0.2em] text-accent font-semibold">Self Serve Creation</span>
-              <h2 className="mt-3 font-display font-bold text-4xl lg:text-5xl tracking-tight text-foreground">
-                Order podcast content like you order anything else.
-              </h2>
-              <p className="mt-4 text-muted-foreground text-lg max-w-xl">
-                A full catalog with fixed scope, transparent pricing, and guaranteed quality. Browse, configure, checkout.
-              </p>
-            </div>
-            <Button asChild variant="outline" className="rounded-full self-start lg:self-end">
-              <Link to="/services">Find out more <ArrowRight className="w-4 h-4 ml-1" /></Link>
-            </Button>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {catalog.map((c) => (
-              <div key={c.title} className="rounded-2xl overflow-hidden border border-border/60 bg-card group hover:border-accent/40 transition-all">
-                <div className="aspect-[4/3] overflow-hidden">
-                  <img src={c.img} alt="" loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                </div>
-                <div className="p-5">
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground font-semibold">{c.tag}</span>
-                  <h3 className="mt-1 font-display font-bold text-lg text-foreground">{c.title}</h3>
-                  <p className="mt-2 text-sm text-accent font-semibold">{c.price}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="mt-12 grid grid-cols-3 gap-6 max-w-2xl">
-            {[
-              { v: "100+", l: "Podcast Products" },
-              { v: "Fixed", l: "Pricing" },
-              { v: "100%", l: "Transparent" },
-            ].map((s) => (
-              <div key={s.l}>
-                <p className="font-display font-bold text-3xl lg:text-4xl text-foreground">{s.v}</p>
-                <p className="mt-1 text-xs uppercase tracking-[0.16em] text-muted-foreground">{s.l}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* FEATURED PODCASTS — admin-curated carousel */}
+      <FeaturedPodcasts />
 
       {/* HUMAN + AI HYBRID — 90seconds split section */}
       <section className="py-24 lg:py-32 border-t border-border/40">

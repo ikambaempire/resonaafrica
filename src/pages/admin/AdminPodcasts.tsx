@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mic2, Loader2, Trash2, Eye, EyeOff } from "lucide-react";
+import { Mic2, Loader2, Trash2, Eye, EyeOff, Star } from "lucide-react";
 import { toast } from "sonner";
 
-interface Row { id: string; title: string; slug: string; owner_id: string; is_published: boolean; created_at: string; }
+interface Row { id: string; title: string; slug: string; owner_id: string; is_published: boolean; is_featured: boolean; created_at: string; }
 
 export default function AdminPodcasts() {
   const [rows, setRows] = useState<Row[]>([]);
@@ -13,12 +13,18 @@ export default function AdminPodcasts() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await supabase.from("podcasts").select("id,title,slug,owner_id,is_published,created_at").order("created_at", { ascending: false });
+    const { data } = await supabase.from("podcasts").select("id,title,slug,owner_id,is_published,is_featured,created_at").order("created_at", { ascending: false });
     setRows((data as Row[]) || []); setLoading(false);
   };
   useEffect(() => { load(); }, []);
 
   const toggle = async (r: Row) => { await supabase.from("podcasts").update({ is_published: !r.is_published }).eq("id", r.id); load(); };
+  const toggleFeatured = async (r: Row) => {
+    const { error } = await supabase.from("podcasts").update({ is_featured: !r.is_featured }).eq("id", r.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(!r.is_featured ? "Marked as featured" : "Removed from featured");
+    load();
+  };
   const del = async (id: string) => { if (!confirm("Delete podcast and all its episodes?")) return; await supabase.from("podcasts").delete().eq("id", id); toast.success("Deleted"); load(); };
 
   return (
@@ -30,9 +36,15 @@ export default function AdminPodcasts() {
             {rows.map((r) => (
               <div key={r.id} className="flex items-center gap-3 p-3 rounded-xl bg-secondary/40">
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{r.title}</p>
+                  <p className="font-semibold truncate flex items-center gap-2">
+                    {r.title}
+                    {r.is_featured && <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/20 text-accent text-[10px] uppercase tracking-wider font-bold"><Star className="w-3 h-3 fill-current" /> Featured</span>}
+                  </p>
                   <p className="text-xs text-muted-foreground">/c/{r.slug} · {new Date(r.created_at).toLocaleDateString()}</p>
                 </div>
+                <Button size="sm" variant={r.is_featured ? "default" : "outline"} onClick={() => toggleFeatured(r)}>
+                  <Star className={`w-3.5 h-3.5 mr-1 ${r.is_featured ? "fill-current" : ""}`} /> {r.is_featured ? "Unfeature" : "Feature"}
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => toggle(r)}>
                   {r.is_published ? <><EyeOff className="w-3.5 h-3.5 mr-1" /> Hide</> : <><Eye className="w-3.5 h-3.5 mr-1" /> Show</>}
                 </Button>
