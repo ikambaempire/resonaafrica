@@ -1,0 +1,2 @@
+ALTER TABLE public.podcasts ADD COLUMN IF NOT EXISTS is_featured boolean NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_podcasts_featured ON public.podcasts(is_featured) WHERE is_featured = true;
