@@ -13,7 +13,7 @@ import { AudioPlayer } from "@/components/AudioPlayer";
 import { VideoPlayer, EmbedPlayer } from "@/components/MediaPlayers";
 import { ChannelStats } from "@/components/ChannelStats";
 import { Mic2, Loader2, Bookmark, Clock, Heart, BadgeCheck } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function ChannelPage() {
