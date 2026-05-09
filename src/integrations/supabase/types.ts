@@ -570,6 +570,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_top_podcasts: {
+        Args: { _limit?: number }
+        Returns: {
+          category: string
+          cover_url: string
+          plays: number
+          podcast_id: string
+          slug: string
+          title: string
+        }[]
+      }
       grant_role_by_email: {
         Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: string
