@@ -78,7 +78,7 @@ export function HeroTopPodcasts() {
             </span>
             <div>
               <p className="text-[10px] uppercase tracking-[0.22em] text-accent font-bold">Live</p>
-              <h3 className="font-display font-bold text-foreground text-lg leading-tight">Top 10 Listened</h3>
+              <h3 className="font-display font-bold text-foreground text-lg leading-tight">Top 10 Most Viewed</h3>
             </div>
           </div>
           <span className="text-[10px] uppercase tracking-[0.18em] text-foreground/60">Updated in real time</span>
@@ -89,7 +89,7 @@ export function HeroTopPodcasts() {
             {data.length === 0 && (
               <div className="py-12 text-center text-sm text-foreground/60">
                 <Headphones className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                Plays will appear here as listeners tune in.
+                Views will appear here as listeners tune in.
               </div>
             )}
             {data.map((row, i) => {
@@ -136,7 +136,7 @@ export function HeroTopPodcasts() {
         </div>
 
         <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
-          <p className="text-[11px] text-foreground/60">Auto-ranked by total plays</p>
+          <p className="text-[11px] text-foreground/60">Auto-ranked by total views</p>
           <Link to="/discover" className="text-[11px] font-semibold text-accent hover:underline">Browse all →</Link>
         </div>
       </div>

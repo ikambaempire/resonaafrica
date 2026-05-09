@@ -39,7 +39,7 @@ export function ChannelStats({ podcastId, episodeCount }: { podcastId: string; e
         <Card className="p-5 rounded-2xl">
           <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3"><Play className="w-5 h-5 text-accent" /></div>
           <p className="text-2xl font-display font-bold"><AnimatedCounter value={data.totalPlays} /></p>
-          <p className="text-xs text-muted-foreground mt-1">Total plays</p>
+          <p className="text-xs text-muted-foreground mt-1">Total views</p>
         </Card>
         <Card className="p-5 rounded-2xl">
           <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3"><Clock className="w-5 h-5 text-accent" /></div>
@@ -53,7 +53,7 @@ export function ChannelStats({ podcastId, episodeCount }: { podcastId: string; e
         </Card>
       </div>
       <Card className="p-6 rounded-2xl">
-        <ChartContainer config={{ plays: { label: "Plays", color: "hsl(var(--accent))" } }} className="h-56 w-full">
+        <ChartContainer config={{ plays: { label: "Views", color: "hsl(var(--accent))" } }} className="h-56 w-full">
           <ResponsiveContainer>
             <AreaChart data={data.series}>
               <defs>

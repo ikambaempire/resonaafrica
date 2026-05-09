@@ -13,7 +13,7 @@ import { AudioPlayer } from "@/components/AudioPlayer";
 import { VideoPlayer, EmbedPlayer } from "@/components/MediaPlayers";
 import { ChannelStats } from "@/components/ChannelStats";
 import { Mic2, Loader2, Bookmark, Clock, Heart, BadgeCheck } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export default function ChannelPage() {
@@ -37,6 +37,17 @@ export default function ChannelPage() {
 
   const onPlay = () => active && recordPlay(active.id, active.podcast_id, 0, user?.id);
   const onProgress = (s: number) => active && recordPlay(active.id, active.podcast_id, s, user?.id);
+
+  // For embed episodes (YouTube, Spotify, etc.) we can't hook into the iframe's play events,
+  // so record a single view when an embed episode becomes active.
+  const recordedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!active) return;
+    if (active.hosting !== "embed" || !active.embed_url) return;
+    if (recordedRef.current.has(active.id)) return;
+    recordedRef.current.add(active.id);
+    recordPlay(active.id, active.podcast_id, 0, user?.id);
+  }, [active?.id, user?.id]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
