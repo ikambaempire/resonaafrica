@@ -109,12 +109,12 @@ const Landing = () => {
               className="max-w-2xl"
             >
               <span className="inline-block text-xs uppercase tracking-[0.3em] text-accent font-semibold mb-4">By <span className="normal-case">iKAMBA</span></span>
-              <h1 className="font-display font-bold text-5xl lg:text-7xl xl:text-[80px] leading-[0.98] tracking-tight text-foreground">
-                The African<br />
-                <span className="text-accent">podcast</span> platform
+              <h1 className="font-display font-bold text-5xl lg:text-7xl xl:text-[80px] leading-[0.98] tracking-tight text-foreground whitespace-pre-line">
+                The Home For{"\n"}
+                <span className="text-accent">African Podcasts</span>
               </h1>
               <p className="mt-7 text-lg lg:text-xl text-foreground/85 max-w-xl leading-relaxed">
-                Create, distribute and grow podcasts anywhere in Africa. Choose self-serve creation to launch instantly, or scale your show with our enterprise platform.
+                Resona helps African creators launch, distribute, and grow podcasts with AI-powered tools, audience discovery, and production support.
               </p>
               <div className="mt-9 flex flex-col sm:flex-row gap-3">
                 <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full font-semibold shadow-gold text-base h-12 px-8">
