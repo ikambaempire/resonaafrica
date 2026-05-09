@@ -53,7 +53,7 @@ export function ChannelStats({ podcastId, episodeCount }: { podcastId: string; e
         </Card>
       </div>
       <Card className="p-6 rounded-2xl">
-        <ChartContainer config={{ plays: { label: "Plays", color: "hsl(var(--accent))" } }} className="h-56 w-full">
+        <ChartContainer config={{ plays: { label: "Views", color: "hsl(var(--accent))" } }} className="h-56 w-full">
           <ResponsiveContainer>
             <AreaChart data={data.series}>
               <defs>
