@@ -23,7 +23,7 @@ import { PublicNav } from "@/components/PublicNav";
 import { Footer } from "@/components/Footer";
 import { NewReleases } from "@/components/NewReleases";
 import { MockupCarousel } from "@/components/MockupCarousel";
-import { HeroCarousel } from "@/components/HeroCarousel";
+import { HeroTopPodcasts } from "@/components/HeroTopPodcasts";
 import heroBg from "@/assets/hero-resona-bg.jpg";
 import realStoriesImg from "@/assets/real-stories.jpg";
 
@@ -147,7 +147,7 @@ const Landing = () => {
             transition={{ duration: 0.7, delay: 0.15 }}
             className="hidden md:block"
           >
-            <HeroCarousel />
+            <HeroTopPodcasts />
           </motion.div>
         </div>
       </section>
