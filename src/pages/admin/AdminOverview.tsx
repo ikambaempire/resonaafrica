@@ -1,8 +1,9 @@
 import { Card } from "@/components/ui/card";
-import { Users, Mic2, DollarSign, TrendingUp, Activity, ArrowUpRight, Play } from "lucide-react";
+import { Users, Mic2, DollarSign, TrendingUp, Activity, ArrowUpRight, Play, Network } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 
 const kpis = [
   { label: "Total Revenue", value: "$48,290", change: "+22%", icon: DollarSign },
@@ -11,33 +12,65 @@ const kpis = [
   { label: "Avg. Watch Time", value: "27m 14s", change: "+5%", icon: Activity },
 ];
 
-const recentActivity = [
-  { who: "Amara O.", what: "published", target: "Lagos Builders Ep. 12", when: "5m ago" },
-  { who: "Kwame B.", what: "upgraded to", target: "Pro plan", when: "22m ago" },
-  { who: "Resona Studio", what: "scheduled", target: "Brand series for Equity Bank", when: "1h ago" },
-  { who: "Zainab M.", what: "joined as", target: "Creator", when: "3h ago" },
-  { who: "System", what: "processed", target: "48 AI clips", when: "5h ago" },
-];
-
 export default function AdminOverview() {
+  const qc = useQueryClient();
+  const [pulse, setPulse] = useState(false);
+
   const { data: stats } = useQuery({
     queryKey: ["admin-overview-stats"],
     queryFn: async () => {
-      const [{ count: users }, { count: roles }, { count: podcasts }, { count: episodes }] = await Promise.all([
+      const [{ count: users }, { count: roles }, { count: podcasts }, { count: episodes }, { count: ecosystem }] = await Promise.all([
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("user_roles").select("*", { count: "exact", head: true }),
         supabase.from("podcasts").select("*", { count: "exact", head: true }),
         supabase.from("episodes").select("*", { count: "exact", head: true }),
+        supabase.from("ecosystem_entries").select("*", { count: "exact", head: true }),
       ]);
-      return { users: users ?? 0, roles: roles ?? 0, podcasts: podcasts ?? 0, episodes: episodes ?? 0 };
+      return {
+        users: users ?? 0,
+        roles: roles ?? 0,
+        podcasts: podcasts ?? 0,
+        episodes: episodes ?? 0,
+        ecosystem: ecosystem ?? 0,
+      };
     },
   });
 
+  const { data: recentSignups = [] } = useQuery({
+    queryKey: ["admin-recent-signups"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, full_name, created_at")
+        .order("created_at", { ascending: false })
+        .limit(8);
+      return data || [];
+    },
+  });
+
+  // Realtime: refresh count + signups when a new profile is created
+  useEffect(() => {
+    const ch = supabase
+      .channel("admin-profiles-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "profiles" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["admin-overview-stats"] });
+          qc.invalidateQueries({ queryKey: ["admin-recent-signups"] });
+          setPulse(true);
+          setTimeout(() => setPulse(false), 1200);
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [qc]);
+
   const liveKpis = [
-    { label: "Total Accounts", value: stats?.users ?? "…", icon: Users, hint: "Registered users" },
+    { label: "Total Accounts", value: stats?.users ?? "…", icon: Users, hint: "Live updating", highlight: true },
     { label: "Podcasts", value: stats?.podcasts ?? "…", icon: Mic2, hint: "Live shows" },
     { label: "Episodes", value: stats?.episodes ?? "…", icon: Play, hint: "Across the platform" },
-    { label: "Role assignments", value: stats?.roles ?? "…", icon: Activity, hint: "Admin / editor / etc." },
+    { label: "Ecosystem partners", value: stats?.ecosystem ?? "…", icon: Network, hint: "Studios & services" },
   ];
 
   return (
@@ -48,23 +81,29 @@ export default function AdminOverview() {
         <p className="mt-2 text-muted-foreground">Real-time signals across the Resona Africa network.</p>
       </header>
 
-      {/* Live KPI cards (real data) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {liveKpis.map((s) => (
-          <Card key={s.label} className="rounded-2xl border-border/60 bg-card p-6">
+          <Card
+            key={s.label}
+            className={`rounded-2xl border-border/60 bg-card p-6 transition-all ${s.highlight && pulse ? "ring-2 ring-accent shadow-gold scale-[1.02]" : ""}`}
+          >
             <div className="flex items-start justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
                 <s.icon className="w-5 h-5 text-accent" />
               </div>
+              {s.highlight && (
+                <span className="flex items-center gap-1 text-[10px] font-semibold text-accent uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" /> Live
+                </span>
+              )}
             </div>
-            <p className="text-3xl font-display font-bold text-foreground">{s.value}</p>
+            <p className="text-3xl font-display font-bold text-foreground tabular-nums">{s.value}</p>
             <p className="text-xs text-muted-foreground mt-1 uppercase tracking-[0.14em]">{s.label}</p>
             <p className="text-[10px] text-muted-foreground mt-1">{s.hint}</p>
           </Card>
         ))}
       </div>
 
-      {/* Sample / illustrative KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {kpis.map((s) => (
           <Card key={s.label} className="rounded-2xl border-border/60 bg-card/50 p-6">
@@ -82,28 +121,36 @@ export default function AdminOverview() {
         ))}
       </div>
 
-      {/* Recent activity + quick actions */}
       <div className="grid lg:grid-cols-3 gap-5">
         <Card className="lg:col-span-2 rounded-2xl border-border/60 bg-card p-6">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="font-display font-bold text-xl text-foreground">Recent activity</h2>
-            <Link to="/admin/reports" className="text-sm text-accent font-semibold inline-flex items-center gap-1">View all <ArrowUpRight className="w-3.5 h-3.5" /></Link>
+            <h2 className="font-display font-bold text-xl text-foreground">Recent signups</h2>
+            <Link to="/admin/users" className="text-sm text-accent font-semibold inline-flex items-center gap-1">
+              View all <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
-          <ul className="divide-y divide-border/40">
-            {recentActivity.map((a, i) => (
-              <li key={i} className="py-3 flex items-center gap-4">
-                <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
-                  <span className="text-xs font-semibold text-accent">{a.who.split(" ").map(w=>w[0]).join("")}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground truncate">
-                    <span className="font-semibold">{a.who}</span> <span className="text-muted-foreground">{a.what}</span> <span className="font-medium">{a.target}</span>
-                  </p>
-                </div>
-                <span className="text-xs text-muted-foreground shrink-0">{a.when}</span>
-              </li>
-            ))}
-          </ul>
+          {recentSignups.length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">No signups yet.</p>
+          ) : (
+            <ul className="divide-y divide-border/40">
+              {recentSignups.map((u: any) => (
+                <li key={u.id} className="py-3 flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center shrink-0">
+                    <span className="text-xs font-semibold text-accent">
+                      {(u.full_name || "U").split(" ").map((w: string) => w[0]).join("").slice(0, 2)}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-foreground truncate font-semibold">{u.full_name || "Unnamed user"}</p>
+                    <p className="text-[11px] font-mono text-muted-foreground truncate">{u.id}</p>
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {new Date(u.created_at).toLocaleString()}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
 
         <Card className="rounded-2xl border-border/60 bg-card p-6">
@@ -112,8 +159,8 @@ export default function AdminOverview() {
             {[
               { label: "Manage users", to: "/admin/users", icon: Users },
               { label: "Assign roles", to: "/admin/roles", icon: Mic2 },
+              { label: "Manage ecosystem", to: "/admin/ecosystem", icon: Network },
               { label: "Send announcement", to: "/admin/announcements", icon: TrendingUp },
-              { label: "View revenue", to: "/admin/revenue", icon: DollarSign },
             ].map((a) => (
               <Link key={a.to} to={a.to} className="flex items-center gap-3 p-3 rounded-xl hover:bg-secondary/60 transition-colors">
                 <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center">
