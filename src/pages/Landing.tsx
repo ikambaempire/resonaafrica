@@ -109,7 +109,7 @@ const Landing = () => {
               className="max-w-2xl"
             >
               <span className="inline-block text-xs uppercase tracking-[0.3em] text-accent font-semibold mb-4">By <span className="normal-case">iKAMBA</span></span>
-              <h1 className="font-display font-bold text-5xl lg:text-7xl xl:text-[80px] leading-[0.98] tracking-tight text-foreground">
+              <h1 className="font-display font-bold text-4xl sm:text-5xl lg:text-6xl xl:text-[64px] leading-[1.05] tracking-tight text-foreground">
                 The Home For<br />
                 <span className="text-accent">African Podcasts</span>
               </h1>
