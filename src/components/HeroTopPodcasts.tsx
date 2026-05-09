@@ -78,7 +78,7 @@ export function HeroTopPodcasts() {
             </span>
             <div>
               <p className="text-[10px] uppercase tracking-[0.22em] text-accent font-bold">Live</p>
-              <h3 className="font-display font-bold text-foreground text-lg leading-tight">Top 10 Listened</h3>
+              <h3 className="font-display font-bold text-foreground text-lg leading-tight">Top 10 Most Viewed</h3>
             </div>
           </div>
           <span className="text-[10px] uppercase tracking-[0.18em] text-foreground/60">Updated in real time</span>
