@@ -148,6 +148,63 @@ export type Database = {
         }
         Relationships: []
       }
+      ecosystem_entries: {
+        Row: {
+          category: string
+          city: string | null
+          contact_email: string | null
+          country: string | null
+          cover_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_hidden: boolean
+          logo_url: string | null
+          name: string
+          sort_order: number
+          tags: string[] | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          category: string
+          city?: string | null
+          contact_email?: string | null
+          country?: string | null
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_hidden?: boolean
+          logo_url?: string | null
+          name: string
+          sort_order?: number
+          tags?: string[] | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          category?: string
+          city?: string | null
+          contact_email?: string | null
+          country?: string | null
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_hidden?: boolean
+          logo_url?: string | null
+          name?: string
+          sort_order?: number
+          tags?: string[] | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       episode_plays: {
         Row: {
           anon_id: string | null
@@ -513,6 +570,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      grant_role_by_email: {
+        Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
+        Returns: string
+      }
       has_active_premium: {
         Args: { _podcast_id: string; _user_id: string }
         Returns: boolean
