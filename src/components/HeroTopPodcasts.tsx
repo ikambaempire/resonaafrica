@@ -89,7 +89,7 @@ export function HeroTopPodcasts() {
             {data.length === 0 && (
               <div className="py-12 text-center text-sm text-foreground/60">
                 <Headphones className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                Plays will appear here as listeners tune in.
+                Views will appear here as listeners tune in.
               </div>
             )}
             {data.map((row, i) => {
