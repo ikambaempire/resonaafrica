@@ -36,46 +36,25 @@ export function HeroTopPodcasts() {
   const { data = [] } = useQuery({
     queryKey: ["hero-top-podcasts"],
     queryFn: async (): Promise<Row[]> => {
-      const { data: plays, error } = await supabase
-        .from("episode_plays")
-        .select("podcast_id")
-        .limit(5000);
+      const { data, error } = await supabase.rpc("get_top_podcasts", { _limit: 10 });
       if (error) throw error;
-
-      const counts = new Map<string, number>();
-      (plays || []).forEach((p: any) => counts.set(p.podcast_id, (counts.get(p.podcast_id) || 0) + 1));
-
-      let topIds = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([id]) => id);
-
-      // If we don't have enough plays yet, fall back to newest published podcasts
-      if (topIds.length < 3) {
-        const { data: pods } = await supabase
-          .from("podcasts")
-          .select("id")
-          .eq("is_published", true)
-          .order("created_at", { ascending: false })
-          .limit(10);
-        const fallbackIds = (pods || []).map((p) => p.id);
-        const merged = Array.from(new Set([...topIds, ...fallbackIds])).slice(0, 10);
-        topIds = merged;
-      }
-
-      if (topIds.length === 0) return [];
-
-      const { data: pods } = await supabase
-        .from("podcasts")
-        .select("id, slug, title, cover_url, category")
-        .in("id", topIds);
-
-      const podMap = new Map((pods || []).map((p: any) => [p.id, p]));
-      return topIds
-        .map((id) => ({ podcast_id: id, plays: counts.get(id) || 0, podcast: podMap.get(id) || null }))
-        .filter((r) => r.podcast);
+      return (data || []).map((r: any) => ({
+        podcast_id: r.podcast_id,
+        plays: Number(r.plays) || 0,
+        podcast: {
+          id: r.podcast_id,
+          slug: r.slug,
+          title: r.title,
+          cover_url: r.cover_url,
+          category: r.category,
+        },
+      }));
     },
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
   });
 
-  // Realtime: refresh on new plays
+  // Realtime: refresh on new plays (works for signed-in users with read access; anon falls back to polling above)
   useEffect(() => {
     const ch = supabase
       .channel("hero-top-plays")
