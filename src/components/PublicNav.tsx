@@ -1,15 +1,9 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { ChevronDown, Menu, X } from "lucide-react";
 
 const solutions = [
@@ -23,6 +17,17 @@ export function PublicNav() {
   const { user } = useAuth();
   const { data: isAdmin } = useIsAdmin();
   const [open, setOpen] = useState(false);
+  const [solOpen, setSolOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openSol = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setSolOpen(true);
+  };
+  const closeSol = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setSolOpen(false), 120);
+  };
 
   return (
     <nav className="sticky top-0 z-40 backdrop-blur-xl bg-background/70 border-b border-border/40">
@@ -32,20 +37,40 @@ export function PublicNav() {
         </Link>
 
         <div className="hidden lg:flex items-center gap-1 text-sm font-medium text-muted-foreground">
-          <DropdownMenu>
-            <DropdownMenuTrigger className="px-3 py-2 rounded-full hover:text-foreground transition-colors flex items-center gap-1 outline-none">
-              Solutions <ChevronDown className="w-3.5 h-3.5" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              {solutions.map((s) => (
-                <DropdownMenuItem key={s.to} asChild>
-                  <Link to={s.to}>{s.label}</Link>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <div
+            className="relative"
+            onMouseEnter={openSol}
+            onMouseLeave={closeSol}
+          >
+            <button
+              type="button"
+              onFocus={openSol}
+              onBlur={closeSol}
+              aria-haspopup="true"
+              aria-expanded={solOpen}
+              className="px-3 py-2 rounded-full hover:text-foreground transition-colors flex items-center gap-1 outline-none"
+            >
+              Solutions <ChevronDown className={`w-3.5 h-3.5 transition-transform ${solOpen ? "rotate-180" : ""}`} />
+            </button>
+            {solOpen && (
+              <div className="absolute left-0 top-full pt-2 w-56">
+                <div className="rounded-xl border border-border/60 bg-popover shadow-xl py-2">
+                  {solutions.map((s) => (
+                    <Link
+                      key={s.to}
+                      to={s.to}
+                      onClick={() => setSolOpen(false)}
+                      className="block px-4 py-2 text-sm text-foreground/80 hover:text-foreground hover:bg-secondary"
+                    >
+                      {s.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           <Link to="/how-it-works" className="px-3 py-2 hover:text-foreground transition-colors">How It Works</Link>
-          <Link to="/roadmap" className="px-3 py-2 hover:text-foreground transition-colors">Roadmap</Link>
+          <Link to="/ecosystem" className="px-3 py-2 hover:text-foreground transition-colors">Ecosystem</Link>
           <Link to="/discover" className="px-3 py-2 hover:text-foreground transition-colors">Discover</Link>
           <Link to="/about" className="px-3 py-2 hover:text-foreground transition-colors">About</Link>
           <Link to="/contact" className="px-3 py-2 hover:text-foreground transition-colors">Contact</Link>
@@ -89,7 +114,7 @@ export function PublicNav() {
             {[
               ...solutions,
               { to: "/how-it-works", label: "How It Works" },
-              { to: "/roadmap", label: "Roadmap" },
+              { to: "/ecosystem", label: "Ecosystem" },
               { to: "/discover", label: "Discover" },
               { to: "/about", label: "About" },
               { to: "/contact", label: "Contact" },

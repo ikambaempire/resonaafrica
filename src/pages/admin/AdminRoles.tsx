@@ -16,6 +16,8 @@ export default function AdminRoles() {
   const qc = useQueryClient();
   const [userId, setUserId] = useState("");
   const [role, setRole] = useState<Role>("creator");
+  const [email, setEmail] = useState("");
+  const [emailRole, setEmailRole] = useState<Role>("admin");
 
   const { data: rows } = useQuery({
     queryKey: ["admin-all-roles"],
@@ -52,6 +54,20 @@ export default function AdminRoles() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const grantByEmail = useMutation({
+    mutationFn: async () => {
+      if (!email) throw new Error("Email required");
+      const { error } = await supabase.rpc("grant_role_by_email", { _email: email.trim(), _role: emailRole });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`${emailRole} role granted to ${email}`);
+      setEmail("");
+      qc.invalidateQueries({ queryKey: ["admin-all-roles"] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const revoke = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("user_roles").delete().eq("id", id);
@@ -74,7 +90,26 @@ export default function AdminRoles() {
 
       <Card className="rounded-2xl border-border/60 bg-card p-6">
         <h2 className="font-display font-bold text-lg text-foreground mb-4 flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-accent" /> Grant a role
+          <ShieldCheck className="w-5 h-5 text-accent" /> Grant by email
+        </h2>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" type="email" className="rounded-full flex-1" />
+          <Select value={emailRole} onValueChange={(v) => setEmailRole(v as Role)}>
+            <SelectTrigger className="rounded-full sm:w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button onClick={() => grantByEmail.mutate()} disabled={grantByEmail.isPending} className="rounded-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
+            {grantByEmail.isPending ? "Granting…" : "Grant"}
+          </Button>
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">Easiest way to promote someone to admin — just type their account email.</p>
+      </Card>
+
+      <Card className="rounded-2xl border-border/60 bg-card p-6">
+        <h2 className="font-display font-bold text-lg text-foreground mb-4 flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-accent" /> Grant by user ID
         </h2>
         <div className="flex flex-col sm:flex-row gap-3">
           <Input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="User UUID" className="rounded-full flex-1 font-mono text-xs" />

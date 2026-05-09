@@ -17,6 +17,7 @@ import {
   ArrowLeft,
   FolderTree,
   Inbox,
+  Network,
 } from "lucide-react";
 
 const navItems = [
@@ -26,6 +27,7 @@ const navItems = [
   { title: "Podcasts", url: "/admin/podcasts", icon: Mic2 },
   { title: "Categories", url: "/admin/categories", icon: FolderTree },
   { title: "Roles", url: "/admin/roles", icon: ShieldCheck },
+  { title: "Ecosystem", url: "/admin/ecosystem", icon: Network },
   { title: "Revenue", url: "/admin/revenue", icon: CreditCard },
   { title: "Announcements", url: "/admin/announcements", icon: Megaphone },
   { title: "Reports", url: "/admin/reports", icon: FileText },

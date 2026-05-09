@@ -21,7 +21,7 @@ import HowItWorks from "./pages/HowItWorks";
 import ForCreators from "./pages/ForCreators";
 import ForOrganizations from "./pages/ForOrganizations";
 import Partnerships from "./pages/Partnerships";
-import Roadmap from "./pages/Roadmap";
+import Ecosystem from "./pages/Ecosystem";
 import Contact from "./pages/Contact";
 import CreatorDashboard from "./pages/dashboard/CreatorDashboard";
 import Content from "./pages/dashboard/Content";
@@ -42,6 +42,7 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminMessages from "./pages/admin/AdminMessages";
+import AdminEcosystem from "./pages/admin/AdminEcosystem";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,7 +76,8 @@ const App = () => (
               <Route path="/for-creators" element={<ForCreators />} />
               <Route path="/for-organizations" element={<ForOrganizations />} />
               <Route path="/partnerships" element={<Partnerships />} />
-              <Route path="/roadmap" element={<Roadmap />} />
+              <Route path="/ecosystem" element={<Ecosystem />} />
+              <Route path="/roadmap" element={<Navigate to="/ecosystem" replace />} />
               <Route path="/contact" element={<Contact />} />
 
               {/* Creator dashboard */}
@@ -112,6 +114,7 @@ const App = () => (
                       <Route path="revenue" element={<AdminRevenue />} />
                       <Route path="announcements" element={<AdminAnnouncements />} />
                       <Route path="messages" element={<AdminMessages />} />
+                      <Route path="ecosystem" element={<AdminEcosystem />} />
                       <Route path="reports" element={<AdminReports />} />
                       <Route path="settings" element={<AdminSettings />} />
                     </Routes>
