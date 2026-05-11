@@ -43,6 +43,9 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminEcosystem from "./pages/admin/AdminEcosystem";
+import ProfilePage from "./pages/ProfilePage";
+import Onboarding from "./pages/Onboarding";
+import { OnboardingGate } from "./components/OnboardingGate";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,10 +67,13 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <ScrollToTop />
+            <OnboardingGate />
             <Routes>
               {/* Public */}
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/u/:username" element={<ProfilePage />} />
               <Route path="/discover" element={<Discover />} />
               <Route path="/c/:slug" element={<ChannelPage />} />
               <Route path="/about" element={<About />} />
