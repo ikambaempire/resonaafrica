@@ -18,13 +18,22 @@ export function OnboardingGate() {
     if (EXEMPT_PREFIXES.some((p) => pathname.startsWith(p))) return;
 
     (async () => {
+      // Skip for admins so they aren't forced through the wizard
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const isAdmin = (roles || []).some((r: any) => r.role === "admin");
+      if (isAdmin) { setChecked(user.id); return; }
+
       const { data } = await supabase
         .from("profiles")
-        .select("is_setup_complete")
+        .select("is_setup_complete, username")
         .eq("id", user.id)
         .maybeSingle();
       setChecked(user.id);
-      if (data && (data as any).is_setup_complete === false) {
+      // Only redirect if profile row exists AND user hasn't picked a handle yet
+      if (data && !(data as any).username && (data as any).is_setup_complete === false) {
         navigate("/onboarding", { replace: true });
       }
     })();
