@@ -13,6 +13,8 @@ import { AudioPlayer } from "@/components/AudioPlayer";
 import { VideoPlayer, EmbedPlayer } from "@/components/MediaPlayers";
 import { ChannelStats } from "@/components/ChannelStats";
 import { PublisherCard } from "@/components/PublisherCard";
+import { TipDialog } from "@/components/TipDialog";
+import { PremiumSubscribeButton } from "@/components/PremiumSubscribeButton";
 import { Mic2, Loader2, Bookmark, Clock, Heart, BadgeCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -69,8 +71,8 @@ export default function ChannelPage() {
               <h1 className="font-display font-bold text-4xl lg:text-5xl text-foreground mt-2">{podcast.title}</h1>
               <p className="mt-3 text-muted-foreground max-w-2xl">{podcast.description}</p>
               <div className="mt-5 flex flex-wrap gap-2">
-                <Button className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full font-semibold"><Heart className="w-4 h-4 mr-1" /> Tip the creator</Button>
-                <Button variant="outline" className="rounded-full">Subscribe to premium</Button>
+                <TipDialog podcastId={podcast.id} episodeId={active?.id} creatorName={podcast.title} />
+                <PremiumSubscribeButton podcastId={podcast.id} />
               </div>
             </div>
           </div>
