@@ -52,6 +52,30 @@ async function getAccessToken(sa: { client_email: string; private_key: string })
   return json.access_token;
 }
 
+function parseGaError(msg: string): { friendly: string; setupUrl?: string } {
+  try {
+    const m = msg.match(/\{[\s\S]*\}$/);
+    if (!m) return { friendly: msg };
+    const j = JSON.parse(m[0]);
+    const err = j?.error;
+    if (!err) return { friendly: msg };
+    if (err.status === "PERMISSION_DENIED" && /has not been used|disabled/i.test(err.message)) {
+      const link = err.details?.find((d: any) => d.activationUrl)?.activationUrl
+        || err.details?.flatMap((d: any) => d.links || []).find((l: any) => l.url)?.url;
+      return {
+        friendly: "The Google Analytics Data API is not enabled in your Google Cloud project. Click the link below to enable it (takes ~30 seconds), then refresh.",
+        setupUrl: link,
+      };
+    }
+    if (err.status === "PERMISSION_DENIED") {
+      return { friendly: "The service account doesn't have access to this GA4 property. In GA4 → Admin → Property Access Management, add the service account email as a Viewer." };
+    }
+    return { friendly: err.message || msg };
+  } catch {
+    return { friendly: msg };
+  }
+}
+
 async function runReport(propertyId: string, token: string, body: unknown) {
   const res = await fetch(
     `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`,
@@ -66,32 +90,50 @@ async function runReport(propertyId: string, token: string, body: unknown) {
   return json;
 }
 
+async function runRealtime(propertyId: string, token: string) {
+  const res = await fetch(
+    `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runRealtimeReport`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ metrics: [{ name: "activeUsers" }] }),
+    },
+  );
+  const json = await res.json();
+  if (!res.ok) throw new Error(`GA error: ${JSON.stringify(json)}`);
+  return json;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const respond = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    if (!authHeader?.startsWith("Bearer ")) return respond({ error: "Unauthorized" }, 401);
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } },
     );
     const { data: claims, error: cErr } = await supabase.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (cErr || !claims?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    if (cErr || !claims?.claims) return respond({ error: "Unauthorized" }, 401);
     const userId = claims.claims.sub;
     const { data: roleRow } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
-    if (!roleRow) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    if (!roleRow) return respond({ error: "Forbidden" }, 403);
 
     const propertyId = Deno.env.get("GA4_PROPERTY_ID")!;
     const sa = JSON.parse(Deno.env.get("GA4_SERVICE_ACCOUNT_JSON")!);
     const token = await getAccessToken(sa);
+
+    const body = await req.json().catch(() => ({}));
+    if (body?.realtimeOnly) {
+      const activeNow = await runRealtime(propertyId, token);
+      return respond({ activeNow });
+    }
 
     const dateRanges = [{ startDate: "30daysAgo", endDate: "today" }];
 
@@ -99,12 +141,8 @@ Deno.serve(async (req) => {
       runReport(propertyId, token, {
         dateRanges,
         metrics: [
-          { name: "activeUsers" },
-          { name: "newUsers" },
-          { name: "sessions" },
-          { name: "screenPageViews" },
-          { name: "averageSessionDuration" },
-          { name: "bounceRate" },
+          { name: "activeUsers" }, { name: "newUsers" }, { name: "sessions" },
+          { name: "screenPageViews" }, { name: "averageSessionDuration" }, { name: "bounceRate" },
         ],
       }),
       runReport(propertyId, token, {
@@ -139,18 +177,14 @@ Deno.serve(async (req) => {
         dimensions: [{ name: "deviceCategory" }],
         metrics: [{ name: "sessions" }],
       }),
-      fetch(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runRealtimeReport`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ metrics: [{ name: "activeUsers" }] }),
-      }).then((r) => r.json()),
+      runRealtime(propertyId, token),
     ]);
 
-    return new Response(JSON.stringify({ summary, byDay, topPages, sources, countries, devices, activeNow }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respond({ summary, byDay, topPages, sources, countries, devices, activeNow });
   } catch (e) {
-    console.error("admin-ga-analytics error:", (e as Error).message, (e as Error).stack);
-    return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const raw = (e as Error).message;
+    console.error("admin-ga-analytics error:", raw);
+    const { friendly, setupUrl } = parseGaError(raw);
+    return respond({ error: friendly, setupUrl, raw }, 200);
   }
 });
