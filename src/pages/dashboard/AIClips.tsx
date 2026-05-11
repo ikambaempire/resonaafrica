@@ -608,7 +608,7 @@ export default function AIClips() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 items-center">
                     {ep?.hosting === "native" && ep.media_url ? (
                       <Button size="sm" onClick={() => playClip(i)} className="bg-accent text-accent-foreground hover:bg-accent/90">
                         {isActive ? <Pause className="w-3.5 h-3.5 mr-1" /> : <Play className="w-3.5 h-3.5 mr-1" />}
@@ -619,14 +619,52 @@ export default function AIClips() {
                         <Play className="w-3.5 h-3.5 mr-1" /> Preview
                       </Button>
                     ) : null}
-                    <Button size="sm" variant="outline" onClick={() => downloadClip(c, i)} disabled={downloadingIndex === i}>
-                      {downloadingIndex === i ? (
-                        <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Preparing…</>
-                      ) : (
-                        <><Download className="w-3.5 h-3.5 mr-1" /> Download clip</>
-                      )}
-                    </Button>
+
+                    {ep?.hosting === "native" && ep.media_url ? (
+                      <>
+                        <Button size="sm" variant="outline" onClick={() => downloadClip(c, i)} disabled={downloadingIndex === i}>
+                          {downloadingIndex === i ? (
+                            <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Preparing…</>
+                          ) : (
+                            <><Download className="w-3.5 h-3.5 mr-1" /> Download</>
+                          )}
+                        </Button>
+                        {rendered[i] ? (
+                          <ShareButtons
+                            shareText={`${c.title} — ${c.hook}`}
+                            file={new File([rendered[i].blob], rendered[i].filename, { type: rendered[i].mime })}
+                          />
+                        ) : (
+                          <Button size="sm" variant="outline" onClick={() => shareNative(c, i)} disabled={downloadingIndex === i}>
+                            {downloadingIndex === i ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Share2 className="w-3.5 h-3.5 mr-1" />}
+                            Prepare to share
+                          </Button>
+                        )}
+                      </>
+                    ) : ytId ? (
+                      <>
+                        <Button size="sm" variant="outline" asChild>
+                          <a href={`https://youtu.be/${ytId}?t=${Math.floor(c.start_seconds)}`} target="_blank" rel="noreferrer">
+                            <Link2 className="w-3.5 h-3.5 mr-1" /> Open at timestamp
+                          </a>
+                        </Button>
+                        <ShareButtons
+                          shareText={`${c.title} — ${c.hook}`}
+                          shareUrl={`https://youtu.be/${ytId}?t=${Math.floor(c.start_seconds)}`}
+                        />
+                      </>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => downloadClip(c, i)}>
+                        <ExternalLink className="w-3.5 h-3.5 mr-1" /> Open source
+                      </Button>
+                    )}
                   </div>
+
+                  {ep?.hosting === "embed" && (
+                    <p className="text-[11px] text-muted-foreground -mt-1">
+                      Hosted on {ep.embed_provider ?? "external platform"}. We share a timestamped link instead of an MP4 file. To produce a downloadable clip, re-upload the source under <strong className="text-foreground">Content → Upload from device</strong>.
+                    </p>
+                  )}
 
                   {downloadError?.index === i && (
                     <Alert variant="destructive" className="mt-1">
