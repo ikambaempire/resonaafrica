@@ -329,12 +329,22 @@ async function recordVideoClip(
       recorder!.start(250);
       await video.play();
 
+      // Clamp end against actual media duration to avoid recording past EOF.
+      const actualDuration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : Number.POSITIVE_INFINITY;
+      const targetEnd = Math.min(clip.end_seconds, actualDuration);
+      const totalLen = Math.max(0.1, targetEnd - clip.start_seconds);
+      onProgress?.(0);
+
       const stopAt = () => {
-        if (video.currentTime >= clip.end_seconds || video.ended) {
+        const elapsed = Math.max(0, video.currentTime - clip.start_seconds);
+        const pct = Math.min(99, (elapsed / totalLen) * 100);
+        onProgress?.(pct);
+        if (video.currentTime >= targetEnd || video.ended) {
           video.removeEventListener("timeupdate", stopAt);
           cancelAnimationFrame(raf);
           try { video.pause(); } catch { /* ignore */ }
           if (recorder?.state !== "inactive") recorder.stop();
+          onProgress?.(100);
         }
       };
 
