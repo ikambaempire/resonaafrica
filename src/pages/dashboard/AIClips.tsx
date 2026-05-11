@@ -176,13 +176,19 @@ function triggerDownload(blob: Blob, filename: string) {
 /**
  * Audio fallback: cut the clip in real-time using a hidden media element + MediaRecorder.
  */
-async function trimWithMediaRecorder(mediaUrl: string, clip: Clip, baseName: string, kind: "video" | "audio"): Promise<RenderedClip> {
+async function trimWithMediaRecorder(
+  mediaUrl: string,
+  clip: Clip,
+  baseName: string,
+  kind: "video" | "audio",
+  onProgress?: (pct: number) => void
+): Promise<RenderedClip> {
   return new Promise<RenderedClip>((resolve, reject) => {
     const el = document.createElement(kind === "video" ? "video" : "audio") as HTMLMediaElement;
     el.crossOrigin = "anonymous";
     el.src = mediaUrl;
-    el.muted = kind === "video";
-    el.volume = 0;
+    el.muted = false;
+    el.volume = kind === "video" ? 0 : 1;
     (el as HTMLVideoElement).playsInline = true;
     el.preload = "auto";
 
@@ -207,13 +213,21 @@ async function trimWithMediaRecorder(mediaUrl: string, clip: Clip, baseName: str
           resolve({ blob, filename: `${safeName(baseName)}-${safeName(clip.title)}.${ext}`, mime });
         };
 
+        const actualDuration = Number.isFinite(el.duration) && el.duration > 0 ? el.duration : Number.POSITIVE_INFINITY;
+        const targetEnd = Math.min(clip.end_seconds, actualDuration);
+        const totalLen = Math.max(0.1, targetEnd - clip.start_seconds);
+        onProgress?.(0);
+
         await seekToTime(el, clip.start_seconds);
         await el.play();
         rec.start();
         const stopAt = () => {
-          if (el.currentTime >= clip.end_seconds) {
+          const elapsed = Math.max(0, el.currentTime - clip.start_seconds);
+          onProgress?.(Math.min(99, (elapsed / totalLen) * 100));
+          if (el.currentTime >= targetEnd) {
             el.removeEventListener("timeupdate", stopAt);
             rec.stop();
+            onProgress?.(100);
           }
         };
         el.addEventListener("timeupdate", stopAt);
