@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
-import { ChevronDown, Menu, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { ChevronDown, Menu, X, UserCircle2 } from "lucide-react";
 
 const solutions = [
   { to: "/for-creators", label: "For Creators" },
@@ -18,7 +19,14 @@ export function PublicNav() {
   const { data: isAdmin } = useIsAdmin();
   const [open, setOpen] = useState(false);
   const [solOpen, setSolOpen] = useState(false);
+  const [me, setMe] = useState<{ username: string | null; avatar_url: string | null } | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!user) { setMe(null); return; }
+    supabase.from("profiles").select("username, avatar_url").eq("id", user.id).maybeSingle()
+      .then(({ data }) => setMe(data as any));
+  }, [user?.id]);
 
   const openSol = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -84,9 +92,17 @@ export function PublicNav() {
                   <Link to="/admin">Admin</Link>
                 </Button>
               )}
-              <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full font-semibold">
-                <Link to="/dashboard/overview">Dashboard</Link>
-              </Button>
+              <Link
+                to={me?.username ? `/u/${me.username}` : "/onboarding"}
+                aria-label="My profile"
+                className="w-10 h-10 rounded-full bg-secondary border border-border/60 hover:border-accent/60 transition-colors flex items-center justify-center overflow-hidden"
+              >
+                {me?.avatar_url ? (
+                  <img src={me.avatar_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <UserCircle2 className="w-5 h-5 text-muted-foreground" />
+                )}
+              </Link>
             </>
           ) : (
             <>

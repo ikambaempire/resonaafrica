@@ -22,7 +22,15 @@ const Auth = () => {
   const [signupPassword, setSignupPassword] = useState("");
 
   useEffect(() => {
-    if (user) navigate("/dashboard/overview", { replace: true });
+    if (!user) return;
+    // Send users with completed setup to dashboard, otherwise to onboarding wizard
+    (async () => {
+      const { data } = await supabase
+        .from("profiles").select("username, is_setup_complete")
+        .eq("id", user.id).maybeSingle();
+      const ready = !!(data as any)?.username;
+      navigate(ready ? "/dashboard/overview" : "/onboarding", { replace: true });
+    })();
   }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -37,7 +45,7 @@ const Auth = () => {
       toast.error(error.message);
     } else {
       toast.success("Welcome back!");
-      navigate("/dashboard/overview");
+      // Routing handled by useEffect above once auth state updates
     }
   };
 
@@ -56,9 +64,8 @@ const Auth = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Account created! Welcome to Resona Africa.");
-
-      navigate("/dashboard/overview");
+      toast.success("Account created! Let's set up your profile.");
+      navigate("/onboarding", { replace: true });
     }
   };
 

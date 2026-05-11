@@ -166,9 +166,14 @@ export default function ProfilePage() {
 
           <div className="flex gap-2 pb-2">
             {isOwn ? (
-              <Button asChild variant="outline" className="rounded-full">
-                <Link to="/dashboard/settings">Edit profile</Link>
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button asChild variant="outline" className="rounded-full">
+                  <Link to="/dashboard/settings">Edit profile</Link>
+                </Button>
+                <Button asChild className="rounded-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold shadow-gold">
+                  <Link to="/dashboard/overview">Open dashboard</Link>
+                </Button>
+              </div>
             ) : (
               <Button
                 onClick={toggleFollow}
