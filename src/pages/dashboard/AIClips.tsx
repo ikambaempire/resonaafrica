@@ -1269,6 +1269,7 @@ export default function AIClips() {
           shareNative={shareNative}
           rendered={rendered}
           downloadingIndex={downloadingIndex}
+          downloadProgress={downloadProgress}
           downloadError={downloadError}
           setDownloadError={setDownloadError}
           dirty={dirty}
