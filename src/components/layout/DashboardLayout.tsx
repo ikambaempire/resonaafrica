@@ -77,9 +77,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          {user && (
-            <span className="text-xs text-muted-foreground hidden lg:block truncate max-w-[160px]">{user.email}</span>
-          )}
+          {/* Email intentionally hidden — visible on profile page */}
           <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
             <Link to={username ? `/u/${username}` : "/onboarding"} aria-label="View my profile">
               <UserIcon className="w-4 h-4" />

@@ -26,6 +26,17 @@ export default function ChannelPage() {
   const toggleWl = useToggleWatchLater();
   const active = episodes.find((e) => e.id === activeId) || episodes[0];
 
+  // For embed episodes (YouTube, Spotify, etc.) we can't hook into the iframe's play events,
+  // so record a single view when an embed episode becomes active.
+  const recordedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!active) return;
+    if (active.hosting !== "embed" || !active.embed_url) return;
+    if (recordedRef.current.has(active.id)) return;
+    recordedRef.current.add(active.id);
+    recordPlay(active.id, active.podcast_id, 0, user?.id);
+  }, [active?.id, user?.id]);
+
   if (isLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin" /></div>;
   if (!podcast) return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -37,17 +48,6 @@ export default function ChannelPage() {
 
   const onPlay = () => active && recordPlay(active.id, active.podcast_id, 0, user?.id);
   const onProgress = (s: number) => active && recordPlay(active.id, active.podcast_id, s, user?.id);
-
-  // For embed episodes (YouTube, Spotify, etc.) we can't hook into the iframe's play events,
-  // so record a single view when an embed episode becomes active.
-  const recordedRef = useRef<Set<string>>(new Set());
-  useEffect(() => {
-    if (!active) return;
-    if (active.hosting !== "embed" || !active.embed_url) return;
-    if (recordedRef.current.has(active.id)) return;
-    recordedRef.current.add(active.id);
-    recordPlay(active.id, active.podcast_id, 0, user?.id);
-  }, [active?.id, user?.id]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
