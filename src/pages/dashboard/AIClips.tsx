@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Sparkles, Loader2, Wand2, Play, Pause, Clock, Scissors, FileText, Download, Save, Lightbulb, ExternalLink, AlertTriangle, RefreshCw, Share2, Copy, Link2, MessageCircle, Twitter } from "lucide-react";
+import { Sparkles, Loader2, Wand2, Play, Clock, Scissors, FileText, Download, Save, Lightbulb, ExternalLink, AlertTriangle, RefreshCw, Share2, Copy, Link2, MessageCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
@@ -55,24 +57,132 @@ async function getFFmpeg(onLog?: (msg: string) => void): Promise<FFmpeg> {
 }
 
 type RenderedClip = { blob: Blob; filename: string; mime: string };
+type AspectPreset = "9:16" | "1:1" | "16:9";
+type ExportSettings = { aspectRatio: AspectPreset; safeArea: boolean };
+type SharePlatform = "instagram" | "tiktok" | "whatsapp";
+
+const EXPORT_PRESETS: Record<AspectPreset, { width: number; height: number; label: string; helper: string }> = {
+  "9:16": { width: 720, height: 1280, label: "9:16", helper: "Shorts / Reels / TikTok" },
+  "1:1": { width: 1080, height: 1080, label: "1:1", helper: "Feeds / square promos" },
+  "16:9": { width: 1280, height: 720, label: "16:9", helper: "YouTube / wide posts" },
+};
+
+function getAspectCss(aspectRatio: AspectPreset) {
+  switch (aspectRatio) {
+    case "9:16": return "9 / 16";
+    case "1:1": return "1 / 1";
+    default: return "16 / 9";
+  }
+}
+
+function getClipCacheKey(clip: Clip, index: number, exportSettings: ExportSettings) {
+  return [
+    index,
+    clip.start_seconds,
+    clip.end_seconds,
+    safeName(clip.title),
+    exportSettings.aspectRatio,
+    exportSettings.safeArea ? "safe" : "full",
+  ].join(":");
+}
+
+function chooseRecorderMime(kind: "video" | "audio") {
+  const preferred = kind === "video"
+    ? ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"]
+    : ["audio/webm;codecs=opus", "audio/webm"];
+
+  return preferred.find((mime) => MediaRecorder.isTypeSupported(mime)) ?? "";
+}
+
+function getCropRect(videoWidth: number, videoHeight: number, exportSettings: ExportSettings) {
+  const preset = EXPORT_PRESETS[exportSettings.aspectRatio];
+  const targetRatio = preset.width / preset.height;
+  let cropWidth = videoWidth;
+  let cropHeight = cropWidth / targetRatio;
+
+  if (cropHeight > videoHeight) {
+    cropHeight = videoHeight;
+    cropWidth = cropHeight * targetRatio;
+  }
+
+  const zoom = exportSettings.safeArea
+    ? exportSettings.aspectRatio === "9:16"
+      ? 0.82
+      : exportSettings.aspectRatio === "1:1"
+        ? 0.88
+        : 0.94
+    : 1;
+
+  cropWidth = Math.max(2, cropWidth * zoom);
+  cropHeight = Math.max(2, cropHeight * zoom);
+
+  return {
+    sx: Math.max(0, Math.round((videoWidth - cropWidth) / 2)),
+    sy: Math.max(0, Math.round((videoHeight - cropHeight) / 2)),
+    sw: Math.min(videoWidth, Math.round(cropWidth)),
+    sh: Math.min(videoHeight, Math.round(cropHeight)),
+  };
+}
+
+async function waitForMediaReady(el: HTMLMediaElement) {
+  if (el.readyState >= 1) return;
+
+  await new Promise<void>((resolve, reject) => {
+    const onLoaded = () => { cleanup(); resolve(); };
+    const onError = () => { cleanup(); reject(new Error("Browser couldn't load the source media.")); };
+    const cleanup = () => {
+      el.removeEventListener("loadedmetadata", onLoaded);
+      el.removeEventListener("error", onError);
+    };
+
+    el.addEventListener("loadedmetadata", onLoaded, { once: true });
+    el.addEventListener("error", onError, { once: true });
+  });
+}
+
+async function seekToTime(el: HTMLMediaElement, time: number) {
+  if (Math.abs(el.currentTime - time) < 0.05) return;
+
+  await new Promise<void>((resolve, reject) => {
+    const onSeeked = () => { cleanup(); resolve(); };
+    const onError = () => { cleanup(); reject(new Error("Could not seek to the selected range.")); };
+    const cleanup = () => {
+      el.removeEventListener("seeked", onSeeked);
+      el.removeEventListener("error", onError);
+    };
+
+    el.addEventListener("seeked", onSeeked, { once: true });
+    el.addEventListener("error", onError, { once: true });
+    el.currentTime = Math.max(0, time);
+  });
+}
 
 function triggerDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  try {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch {
+    window.open(url, "_blank", "noopener,noreferrer");
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+  }
 }
 
 /**
- * Fallback: cut the clip in real-time using a hidden <video> + MediaRecorder.
+ * Audio fallback: cut the clip in real-time using a hidden media element + MediaRecorder.
  */
 async function trimWithMediaRecorder(mediaUrl: string, clip: Clip, baseName: string, kind: "video" | "audio"): Promise<RenderedClip> {
   return new Promise<RenderedClip>((resolve, reject) => {
     const el = document.createElement(kind === "video" ? "video" : "audio") as HTMLMediaElement;
     el.crossOrigin = "anonymous";
     el.src = mediaUrl;
-    el.muted = false;
+    el.muted = kind === "video";
+    el.volume = 0;
     (el as HTMLVideoElement).playsInline = true;
     el.preload = "auto";
 
@@ -85,19 +195,19 @@ async function trimWithMediaRecorder(mediaUrl: string, clip: Clip, baseName: str
         // @ts-expect-error captureStream exists on HTMLMediaElement in modern browsers
         const stream: MediaStream = el.captureStream ? el.captureStream() : el.mozCaptureStream();
         if (!stream) throw new Error("This browser doesn't support media capture.");
-        const mime = kind === "video"
-          ? (MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus") ? "video/webm;codecs=vp9,opus" : "video/webm")
-          : (MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "audio/webm");
+        const mime = chooseRecorderMime(kind);
+        if (!mime) throw new Error("This browser can't record media in a supported format.");
         const chunks: BlobPart[] = [];
         const rec = new MediaRecorder(stream, { mimeType: mime });
         rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
         rec.onstop = () => {
           const blob = new Blob(chunks, { type: mime });
           cleanup();
-          resolve({ blob, filename: `${safeName(baseName)}-${safeName(clip.title)}.webm`, mime });
+          const ext = mime.includes("mp4") ? "mp4" : mime.includes("audio") ? "webm" : "webm";
+          resolve({ blob, filename: `${safeName(baseName)}-${safeName(clip.title)}.${ext}`, mime });
         };
 
-        el.currentTime = clip.start_seconds;
+        await seekToTime(el, clip.start_seconds);
         await el.play();
         rec.start();
         const stopAt = () => {
@@ -113,105 +223,245 @@ async function trimWithMediaRecorder(mediaUrl: string, clip: Clip, baseName: str
 }
 
 /**
- * Precisely trim a native (CORS-accessible) media URL into a real MP4 / M4A clip.
- * Returns the rendered Blob — caller decides to download or share.
+ * Records only the selected portion from the source video and applies the export crop in-browser.
  */
-async function trimNativeClip(
+async function recordVideoClip(
   mediaUrl: string,
   clip: Clip,
   baseName: string,
-  kind: "video" | "audio"
+  exportSettings: ExportSettings
 ): Promise<RenderedClip> {
-  if (!mediaUrl) throw new Error("Episode has no source media URL.");
+  const video = document.createElement("video");
+  video.crossOrigin = "anonymous";
+  video.src = mediaUrl;
+  video.preload = "auto";
+  video.playsInline = true;
+  video.muted = true;
+
+  let raf = 0;
+  let recorder: MediaRecorder | null = null;
+  let sourceStream: MediaStream | null = null;
+  let canvasStream: MediaStream | null = null;
+  let audioCtx: AudioContext | null = null;
+  let audioDestination: MediaStreamAudioDestinationNode | null = null;
+  let mediaSource: MediaElementAudioSourceNode | null = null;
+
+  const cleanup = async () => {
+    cancelAnimationFrame(raf);
+    try { recorder?.stream.getTracks().forEach((track) => track.stop()); } catch { /* ignore */ }
+    try { canvasStream?.getTracks().forEach((track) => track.stop()); } catch { /* ignore */ }
+    try { sourceStream?.getTracks().forEach((track) => track.stop()); } catch { /* ignore */ }
+    try { mediaSource?.disconnect(); } catch { /* ignore */ }
+    try { audioDestination?.disconnect(); } catch { /* ignore */ }
+    try { await audioCtx?.close(); } catch { /* ignore */ }
+    try { video.pause(); } catch { /* ignore */ }
+    video.removeAttribute("src");
+    try { video.load(); } catch { /* ignore */ }
+  };
 
   try {
-    toast.loading("Loading FFmpeg engine…", { id: "clip-dl" });
-    const ff = await getFFmpeg();
-    const urlNoQuery = mediaUrl.split("?")[0];
-    const inExtMatch = urlNoQuery.match(/\.([a-z0-9]{3,4})$/i);
-    const inExt = inExtMatch ? inExtMatch[1].toLowerCase() : (kind === "video" ? "mp4" : "mp3");
-    const inName = `input.${inExt}`;
-    const outExt = kind === "video" ? "mp4" : "m4a";
-    const outName = `clip.${outExt}`;
+    await waitForMediaReady(video);
 
-    toast.loading("Downloading source…", { id: "clip-dl" });
-    let fileData: Uint8Array;
+    // @ts-expect-error captureStream exists on HTMLMediaElement in modern browsers
+    sourceStream = video.captureStream ? video.captureStream() : video.mozCaptureStream();
+    if (!sourceStream) throw new Error("This browser doesn't support live clip recording.");
+
+    const preset = EXPORT_PRESETS[exportSettings.aspectRatio];
+    const canvas = document.createElement("canvas");
+    canvas.width = preset.width;
+    canvas.height = preset.height;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) throw new Error("Could not create a video export canvas.");
+
+    const recorderMime = chooseRecorderMime("video");
+    if (!recorderMime) throw new Error("This browser can't record video clips in a supported format.");
+
+    canvasStream = canvas.captureStream(30);
+    const exportStream = new MediaStream();
+    canvasStream.getVideoTracks().forEach((track) => exportStream.addTrack(track));
+
     try {
-      // Direct fetch first — more reliable than @ffmpeg/util's fetchFile for Supabase storage URLs
-      const res = await fetch(mediaUrl, { mode: "cors", credentials: "omit", cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-      const buf = await res.arrayBuffer();
-      if (!buf.byteLength) throw new Error("Empty response from source media");
-      fileData = new Uint8Array(buf);
-    } catch (netErr) {
-      try {
-        // Fallback to ffmpeg's helper (handles a few odd cases)
-        fileData = await fetchFile(mediaUrl);
-      } catch {
-        const msg = (netErr as Error)?.message || "network";
-        throw new Error(`FETCH_FAILED: ${msg}`);
-      }
+      audioCtx = new AudioContext();
+      mediaSource = audioCtx.createMediaElementSource(video);
+      audioDestination = audioCtx.createMediaStreamDestination();
+      mediaSource.connect(audioDestination);
+      audioDestination.stream.getAudioTracks().forEach((track) => exportStream.addTrack(track));
+    } catch {
+      sourceStream.getAudioTracks().forEach((track) => exportStream.addTrack(track));
     }
-    await ff.writeFile(inName, fileData);
 
-    const start = Math.max(0, clip.start_seconds);
-    const dur = Math.max(0.1, clip.end_seconds - clip.start_seconds);
+    const chunks: BlobPart[] = [];
+    recorder = new MediaRecorder(exportStream, { mimeType: recorderMime, videoBitsPerSecond: 8_000_000 });
 
-    toast.loading("Cutting clip…", { id: "clip-dl" });
+    const result = await new Promise<RenderedClip>(async (resolve, reject) => {
+      recorder!.ondataavailable = (event) => {
+        if (event.data.size) chunks.push(event.data);
+      };
+      recorder!.onerror = () => reject(new Error("The browser stopped recording the clip."));
+      recorder!.onstop = () => {
+        const blob = new Blob(chunks, { type: recorderMime });
+        if (!blob.size) {
+          reject(new Error("The selected range exported as an empty clip. Try a shorter range or a different browser."));
+          return;
+        }
+        const ext = recorderMime.includes("mp4") ? "mp4" : "webm";
+        resolve({ blob, filename: `${safeName(baseName)}-${safeName(clip.title)}.${ext}`, mime: recorderMime });
+      };
+
+      const draw = () => {
+        const { sx, sy, sw, sh } = getCropRect(video.videoWidth || preset.width, video.videoHeight || preset.height, exportSettings);
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        raf = requestAnimationFrame(draw);
+      };
+
+      await seekToTime(video, clip.start_seconds);
+      await audioCtx?.resume().catch(() => undefined);
+      draw();
+      recorder!.start(250);
+      await video.play();
+
+      const stopAt = () => {
+        if (video.currentTime >= clip.end_seconds || video.ended) {
+          video.removeEventListener("timeupdate", stopAt);
+          cancelAnimationFrame(raf);
+          try { video.pause(); } catch { /* ignore */ }
+          if (recorder?.state !== "inactive") recorder.stop();
+        }
+      };
+
+      video.addEventListener("timeupdate", stopAt);
+    });
+
+    return result;
+  } catch (error) {
+    throw error instanceof Error ? error : new Error("Could not export this clip.");
+  } finally {
+    await cleanup();
+  }
+}
+
+async function transcodeRecordedClip(rendered: RenderedClip, kind: "video" | "audio") {
+  const ff = await getFFmpeg();
+  const inputExt = rendered.filename.split(".").pop()?.toLowerCase() || (kind === "video" ? "webm" : "m4a");
+  const inName = `input.${inputExt}`;
+  const outExt = kind === "video" ? "mp4" : "m4a";
+  const outName = `output.${outExt}`;
+
+  await ff.writeFile(inName, await fetchFile(rendered.blob));
+
+  try {
     const args = kind === "video"
-      ? ["-ss", String(start), "-i", inName, "-t", String(dur),
-         "-c:v", "libx264", "-preset", "ultrafast", "-crf", "26",
-         "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", outName]
-      : ["-ss", String(start), "-i", inName, "-t", String(dur),
-         "-c:a", "aac", "-b:a", "192k", outName];
-    await ff.exec(args);
+      ? ["-i", inName, "-c:v", "libx264", "-preset", "ultrafast", "-crf", "26", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", outName]
+      : ["-i", inName, "-c:a", "aac", "-b:a", "192k", outName];
 
+    await ff.exec(args);
     const data = await ff.readFile(outName);
     const u8 = data as Uint8Array;
     const buf = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) as ArrayBuffer;
     const mime = kind === "video" ? "video/mp4" : "audio/mp4";
-    const blob = new Blob([buf], { type: mime });
-    if (blob.size === 0) throw new Error("FFmpeg produced an empty file. Try a different time range.");
+    return {
+      blob: new Blob([buf], { type: mime }),
+      filename: rendered.filename.replace(/\.[a-z0-9]+$/i, `.${outExt}`),
+      mime,
+    } satisfies RenderedClip;
+  } finally {
+    try { await ff.deleteFile(inName); } catch { /* ignore */ }
+    try { await ff.deleteFile(outName); } catch { /* ignore */ }
+  }
+}
 
-    try { await ff.deleteFile(inName); await ff.deleteFile(outName); } catch { /* ignore */ }
+async function trimNativeClip(
+  mediaUrl: string,
+  clip: Clip,
+  baseName: string,
+  kind: "video" | "audio",
+  exportSettings: ExportSettings
+): Promise<RenderedClip> {
+  if (!mediaUrl) throw new Error("Episode has no source media URL.");
 
-    toast.success("Clip ready", { id: "clip-dl" });
-    return { blob, filename: `${safeName(baseName)}-${safeName(clip.title)}.${outExt}`, mime };
-  } catch (e) {
-    const msg = (e as Error)?.message || "";
-    if (msg.startsWith("FETCH_FAILED")) {
-      try {
-        toast.loading(`Recording in real-time (${Math.ceil(clip.end_seconds - clip.start_seconds)}s)…`, { id: "clip-dl" });
-        const r = await trimWithMediaRecorder(mediaUrl, clip, baseName, kind);
-        toast.success("Clip ready (recorded)", { id: "clip-dl" });
-        return r;
-      } catch (recErr) {
-        throw new Error((recErr as Error)?.message || "Both FFmpeg and recorder fallback failed.");
-      }
+  try {
+    toast.loading("Recording selected range…", { id: "clip-dl" });
+    const recorded = kind === "video"
+      ? await recordVideoClip(mediaUrl, clip, baseName, exportSettings)
+      : await trimWithMediaRecorder(mediaUrl, clip, baseName, kind);
+
+    toast.loading("Optimizing clip for download…", { id: "clip-dl" });
+
+    try {
+      const optimized = await transcodeRecordedClip(recorded, kind);
+      toast.success("Clip ready", { id: "clip-dl" });
+      return optimized;
+    } catch {
+      toast.success("Clip ready", { id: "clip-dl" });
+      return recorded;
     }
+  } catch (e) {
     throw e instanceof Error ? e : new Error(String(e));
+  }
+}
+
+function buildShareCopy(platform: SharePlatform, shareText: string, shareUrl?: string) {
+  const cleanText = shareText.trim();
+  switch (platform) {
+    case "instagram":
+      return `${cleanText}${shareUrl ? `\n\nWatch the full moment:\n${shareUrl}` : ""}\n\n#ResonaAfrica #PodcastClips #Reels`;
+    case "tiktok":
+      return `${cleanText}${shareUrl ? `\n\nFull clip: ${shareUrl}` : ""}\n#ResonaAfrica #PodcastTok #AfricanCreators`;
+    default:
+      return `${cleanText}${shareUrl ? `\n\nWatch here: ${shareUrl}` : "\n\nSending the clip file next."}`;
   }
 }
 
 function ShareButtons({ shareText, shareUrl, file }: { shareText: string; shareUrl?: string; file?: File }) {
   const canNativeShare = typeof navigator !== "undefined" && !!(navigator as Navigator & { share?: unknown }).share;
   const canShareFile = canNativeShare && file && (navigator as Navigator & { canShare?: (d: ShareData) => boolean }).canShare?.({ files: [file] });
-  const wa = `https://wa.me/?text=${encodeURIComponent(shareText + (shareUrl ? ` ${shareUrl}` : ""))}`;
-  const tw = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}${shareUrl ? `&url=${encodeURIComponent(shareUrl)}` : ""}`;
-
-  const nativeShare = async () => {
+  const nativeShare = async (platform: SharePlatform) => {
     try {
-      const data: ShareData = { title: shareText, text: shareText };
+      const data: ShareData = { title: shareText, text: buildShareCopy(platform, shareText, shareUrl) };
       if (shareUrl) data.url = shareUrl;
       if (canShareFile && file) data.files = [file];
       await (navigator as Navigator & { share: (d: ShareData) => Promise<void> }).share(data);
     } catch { /* user cancelled */ }
   };
 
-  const copyLink = async () => {
-    if (!shareUrl) return;
-    await navigator.clipboard.writeText(shareUrl);
-    toast.success("Link copied");
+  const copyText = async (value: string, label: string) => {
+    await navigator.clipboard.writeText(value);
+    toast.success(`${label} copied`);
+  };
+
+  const openPlatform = async (platform: SharePlatform) => {
+    const formatted = buildShareCopy(platform, shareText, shareUrl);
+
+    if (platform === "whatsapp" && shareUrl) {
+      window.open(`https://wa.me/?text=${encodeURIComponent(formatted)}`, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    if (file && canShareFile) {
+      await nativeShare(platform);
+      return;
+    }
+
+    await copyText(formatted, `${platform[0].toUpperCase()}${platform.slice(1)} text`);
+
+    if (file) {
+      triggerDownload(file, file.name);
+      toast.success("Clip downloaded — upload it in the app that just opened.");
+    }
+
+    if (platform === "instagram") {
+      window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    if (platform === "tiktok") {
+      window.open("https://www.tiktok.com/upload", "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    window.open(`https://wa.me/?text=${encodeURIComponent(formatted)}`, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -225,24 +475,26 @@ function ShareButtons({ shareText, shareUrl, file }: { shareText: string; shareU
         <DropdownMenuLabel className="text-xs">Share this clip</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {canNativeShare && (
-          <DropdownMenuItem onClick={nativeShare}>
-            <Share2 className="w-4 h-4 mr-2" /> {canShareFile ? "Share file…" : "Share via device…"}
+          <DropdownMenuItem onClick={() => nativeShare("whatsapp")}>
+            <Share2 className="w-4 h-4 mr-2" /> {canShareFile ? "Share from device…" : "Share link…"}
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem asChild>
-          <a href={wa} target="_blank" rel="noreferrer"><MessageCircle className="w-4 h-4 mr-2" /> WhatsApp</a>
+        <DropdownMenuItem onClick={() => openPlatform("instagram")}>Instagram / Reels</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => openPlatform("tiktok")}>TikTok</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => openPlatform("whatsapp")}>
+          <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
         </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <a href={tw} target="_blank" rel="noreferrer"><Twitter className="w-4 h-4 mr-2" /> X / Twitter</a>
+        <DropdownMenuItem onClick={() => copyText(buildShareCopy("instagram", shareText, shareUrl), "Instagram caption")}>
+          <Copy className="w-4 h-4 mr-2" /> Copy caption
         </DropdownMenuItem>
         {shareUrl && (
-          <DropdownMenuItem onClick={copyLink}>
+          <DropdownMenuItem onClick={() => copyText(shareUrl, "Link")}>
             <Copy className="w-4 h-4 mr-2" /> Copy link
           </DropdownMenuItem>
         )}
         {!shareUrl && file && (
           <div className="px-2 py-1.5 text-[11px] text-muted-foreground border-t mt-1">
-            For TikTok / Instagram: download the file, then upload it from the app.
+            Instagram and TikTok will open with a copied caption. Attach the downloaded file inside the app.
           </div>
         )}
       </DropdownMenuContent>
