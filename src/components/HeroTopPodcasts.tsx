@@ -3,11 +3,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
-import { Play, TrendingUp, Headphones } from "lucide-react";
+import { Play, TrendingUp, Headphones, Youtube } from "lucide-react";
 
 type Row = {
   podcast_id: string;
   plays: number;
+  resona_views: number;
+  youtube_views: number;
   podcast: { id: string; slug: string; title: string; cover_url: string | null; category: string | null } | null;
 };
 
@@ -41,6 +43,8 @@ export function HeroTopPodcasts() {
       return (data || []).map((r: any) => ({
         podcast_id: r.podcast_id,
         plays: Number(r.plays) || 0,
+        resona_views: Number(r.resona_views) || 0,
+        youtube_views: Number(r.youtube_views) || 0,
         podcast: {
           id: r.podcast_id,
           slug: r.slug,
@@ -124,9 +128,16 @@ export function HeroTopPodcasts() {
                       <p className="font-display font-bold text-white text-sm leading-tight truncate">{p.title}</p>
                       <p className="text-[11px] text-white/80 truncate">{p.category || "Podcast"}</p>
                     </div>
-                    <div className="flex items-center gap-1.5 text-white/95 shrink-0">
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span className="font-display font-bold text-sm tabular-nums">{formatPlays(row.plays)}</span>
+                    <div className="flex flex-col items-end shrink-0">
+                      <div className="flex items-center gap-1.5 text-white/95">
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span className="font-display font-bold text-sm tabular-nums">{formatPlays(row.plays)}</span>
+                      </div>
+                      {row.youtube_views > 0 && (
+                        <span className="flex items-center gap-1 text-[10px] text-white/75 tabular-nums" title="YouTube views">
+                          <Youtube className="w-3 h-3" />{formatPlays(row.youtube_views)}
+                        </span>
+                      )}
                     </div>
                   </Link>
                 </motion.div>
