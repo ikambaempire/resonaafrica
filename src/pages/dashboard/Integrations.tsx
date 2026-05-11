@@ -103,17 +103,46 @@ export default function Integrations() {
     } finally { setBusy(false); }
   }
 
+  async function createPodcastFromChannel(): Promise<string | null> {
+    if (!channel || !user) return null;
+    try {
+      const created = await createPodcast.mutateAsync({
+        owner_id: user.id,
+        title: channel.title,
+        slug: `${slugify(channel.title)}-${Math.random().toString(36).slice(2, 6)}`,
+        description: `${channel.title} — imported from YouTube`,
+        category: "Other",
+        is_published: true,
+      } as any);
+      await refetchPodcasts();
+      setPodcastId(created.id);
+      toast.success(`Created podcast "${created.title}"`);
+      return created.id;
+    } catch (e: any) {
+      toast.error(e.message || "Could not create podcast");
+      return null;
+    }
+  }
+
   async function importSelected() {
-    if (!podcastId) return toast.error("Pick a podcast to import into");
+    let pid = podcastId;
+    if (!pid) {
+      // Auto-create a podcast from the channel if user hasn't picked one
+      pid = (await createPodcastFromChannel()) || "";
+      if (!pid) return;
+    }
     const picked = videos.filter((v) => selected[v.videoId]);
     if (!picked.length) return toast.error("Select at least one video");
     setBusy(true);
     try {
       const { data, error } = await supabase.functions.invoke("import-youtube-channel", {
-        body: { action: "import", podcastId, channelId: channel!.channelId, handle: channel!.handle, videos: picked },
+        body: { action: "import", podcastId: pid, channelId: channel!.channelId, handle: channel!.handle, videos: picked },
       });
-      if (error) throw error;
-      toast.success(`Imported ${data?.inserted ?? picked.length} episodes`);
+      if (error) throw new Error(error.message || "Edge function failed");
+      if (data?.ok === false) throw new Error(data.error || "Import failed");
+      toast.success(`Imported ${data?.inserted ?? picked.length} episodes — syncing view counts…`);
+      // Kick off an immediate stats sync so view counts show up right away
+      supabase.functions.invoke("sync-youtube-views").catch(() => {});
       setVideos([]); setChannel(null); setChannelInput("");
     } catch (e: any) {
       toast.error(e.message || "Import failed");
