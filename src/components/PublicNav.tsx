@@ -9,7 +9,7 @@ import { ChevronDown, Menu, X } from "lucide-react";
 const solutions = [
   { to: "/for-creators", label: "For Creators" },
   { to: "/for-organizations", label: "For Organizations" },
-  { to: "/services", label: "Services" },
+  { to: "/ecosystem", label: "Ecosystem" },
   { to: "/partnerships", label: "Partnerships" },
 ];
 
@@ -70,7 +70,7 @@ export function PublicNav() {
             )}
           </div>
           <Link to="/how-it-works" className="px-3 py-2 hover:text-foreground transition-colors">How It Works</Link>
-          <Link to="/ecosystem" className="px-3 py-2 hover:text-foreground transition-colors">Ecosystem</Link>
+          <Link to="/services" className="px-3 py-2 hover:text-foreground transition-colors">Services</Link>
           <Link to="/discover" className="px-3 py-2 hover:text-foreground transition-colors">Discover</Link>
           <Link to="/about" className="px-3 py-2 hover:text-foreground transition-colors">About</Link>
           <Link to="/contact" className="px-3 py-2 hover:text-foreground transition-colors">Contact</Link>
@@ -114,7 +114,7 @@ export function PublicNav() {
             {[
               ...solutions,
               { to: "/how-it-works", label: "How It Works" },
-              { to: "/ecosystem", label: "Ecosystem" },
+              { to: "/services", label: "Services" },
               { to: "/discover", label: "Discover" },
               { to: "/about", label: "About" },
               { to: "/contact", label: "Contact" },

@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, Eye, EyeOff, Mic2 } from "lucide-react";
+import { Plus, Trash2, Eye, EyeOff, Mic2, Upload, Loader2, Video } from "lucide-react";
 
 type Entry = {
   id: string;
@@ -21,6 +22,7 @@ type Entry = {
   contact_email: string | null;
   logo_url: string | null;
   cover_url: string | null;
+  video_url: string | null;
   tags: string[] | null;
   sort_order: number;
   is_hidden: boolean;
@@ -36,9 +38,85 @@ const empty = {
   contact_email: "",
   logo_url: "",
   cover_url: "",
+  video_url: "",
   tags: "",
   sort_order: 100,
 };
+
+async function uploadEcosystemFile(file: File): Promise<string> {
+  const ext = file.name.split(".").pop() || "bin";
+  const path = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from("ecosystem-media").upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from("ecosystem-media").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+function MediaUpload({
+  label,
+  value,
+  onChange,
+  accept,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  onChange: (url: string) => void;
+  accept: string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const isVideo = accept.includes("video");
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <div className="flex gap-2 items-start">
+        {value && (
+          isVideo ? (
+            <video src={value} className="w-16 h-16 rounded-lg object-cover bg-secondary" muted />
+          ) : (
+            <img src={value} alt="" className="w-16 h-16 rounded-lg object-cover bg-secondary" />
+          )
+        )}
+        <div className="flex-1 space-y-2">
+          <Input
+            placeholder="Paste URL or upload below"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+          />
+          <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-secondary hover:bg-secondary/70 cursor-pointer transition-colors">
+            {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Icon className="w-3.5 h-3.5" />}
+            {uploading ? "Uploading…" : "Upload file"}
+            <input
+              type="file"
+              accept={accept}
+              className="hidden"
+              disabled={uploading}
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                setUploading(true);
+                try {
+                  const url = await uploadEcosystemFile(f);
+                  onChange(url);
+                  toast.success("Uploaded");
+                } catch (err: any) {
+                  toast.error(err.message || "Upload failed");
+                } finally {
+                  setUploading(false);
+                  e.target.value = "";
+                }
+              }}
+            />
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminEcosystem() {
   const qc = useQueryClient();
@@ -70,6 +148,7 @@ export default function AdminEcosystem() {
         contact_email: form.contact_email || null,
         logo_url: form.logo_url || null,
         cover_url: form.cover_url || null,
+        video_url: form.video_url || null,
         tags: form.tags ? form.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
         sort_order: Number(form.sort_order) || 100,
       };
@@ -124,8 +203,14 @@ export default function AdminEcosystem() {
           <Input placeholder="Country" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
           <Input placeholder="Website URL" value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
           <Input placeholder="Contact email" value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} />
-          <Input placeholder="Logo URL" value={form.logo_url} onChange={(e) => setForm({ ...form, logo_url: e.target.value })} />
-          <Input placeholder="Cover image URL" value={form.cover_url} onChange={(e) => setForm({ ...form, cover_url: e.target.value })} />
+          <div className="md:col-span-2 grid md:grid-cols-2 gap-3 pt-2">
+            <MediaUpload label="Logo (square)" value={form.logo_url} onChange={(v) => setForm({ ...form, logo_url: v })} accept="image/*" icon={Upload} />
+            <MediaUpload label="Cover image" value={form.cover_url} onChange={(v) => setForm({ ...form, cover_url: v })} accept="image/*" icon={Upload} />
+            <MediaUpload label="Video (MP4 / WebM)" value={form.video_url} onChange={(v) => setForm({ ...form, video_url: v })} accept="video/*" icon={Video} />
+            <div className="text-xs text-muted-foreground self-center">
+              Video plays automatically (muted, looped) on the public Ecosystem card instead of the cover image.
+            </div>
+          </div>
           <Input placeholder="Tags (comma separated)" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} className="md:col-span-2" />
           <Textarea placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="md:col-span-2" rows={3} />
           <Input type="number" placeholder="Sort order (100 default)" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
@@ -156,7 +241,10 @@ export default function AdminEcosystem() {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-foreground truncate">{e.name}</p>
+                  <p className="font-semibold text-foreground truncate flex items-center gap-2">
+                    {e.name}
+                    {e.video_url && <Video className="w-3.5 h-3.5 text-accent" />}
+                  </p>
                   <p className="text-xs text-muted-foreground truncate">
                     {e.category} {e.city && `· ${e.city}`} {e.country && `· ${e.country}`}
                   </p>

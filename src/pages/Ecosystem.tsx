@@ -16,6 +16,7 @@ type Entry = {
   contact_email: string | null;
   logo_url: string | null;
   cover_url: string | null;
+  video_url: string | null;
   tags: string[] | null;
 };
 
@@ -71,11 +72,22 @@ export default function Ecosystem() {
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {entries.map((e) => (
                   <Card key={e.id} className="rounded-2xl overflow-hidden border-border/60 bg-card hover:border-accent/50 transition-colors">
-                    {e.cover_url && (
+                    {e.video_url ? (
+                      <div className="aspect-[16/9] overflow-hidden bg-black">
+                        <video
+                          src={e.video_url}
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : e.cover_url ? (
                       <div className="aspect-[16/9] overflow-hidden">
                         <img src={e.cover_url} alt="" loading="lazy" className="w-full h-full object-cover" />
                       </div>
-                    )}
+                    ) : null}
                     <div className="p-5">
                       <div className="flex items-start gap-3">
                         {e.logo_url ? (
