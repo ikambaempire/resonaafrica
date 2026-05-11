@@ -148,6 +148,39 @@ export type Database = {
         }
         Relationships: []
       }
+      creator_integrations: {
+        Row: {
+          connected_at: string
+          external_id: string | null
+          handle: string | null
+          id: string
+          last_sync_at: string | null
+          metadata: Json
+          provider: string
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string
+          external_id?: string | null
+          handle?: string | null
+          id?: string
+          last_sync_at?: string | null
+          metadata?: Json
+          provider: string
+          user_id: string
+        }
+        Update: {
+          connected_at?: string
+          external_id?: string | null
+          handle?: string | null
+          id?: string
+          last_sync_at?: string | null
+          metadata?: Json
+          provider?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ecosystem_entries: {
         Row: {
           category: string
@@ -279,6 +312,9 @@ export type Database = {
           title: string
           transcript: string | null
           updated_at: string
+          youtube_video_id: string | null
+          youtube_views: number
+          youtube_views_synced_at: string | null
         }
         Insert: {
           ai_clips?: Json | null
@@ -302,6 +338,9 @@ export type Database = {
           title: string
           transcript?: string | null
           updated_at?: string
+          youtube_video_id?: string | null
+          youtube_views?: number
+          youtube_views_synced_at?: string | null
         }
         Update: {
           ai_clips?: Json | null
@@ -325,6 +364,9 @@ export type Database = {
           title?: string
           transcript?: string | null
           updated_at?: string
+          youtube_video_id?: string | null
+          youtube_views?: number
+          youtube_views_synced_at?: string | null
         }
         Relationships: [
           {
@@ -649,8 +691,10 @@ export type Database = {
           cover_url: string
           plays: number
           podcast_id: string
+          resona_views: number
           slug: string
           title: string
+          youtube_views: number
         }[]
       }
       grant_role_by_email: {
