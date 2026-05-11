@@ -30,7 +30,14 @@ export default function AdminAnalytics() {
     enabled,
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("admin-ga-analytics", { body: {} });
-      if (error) throw error;
+      if (error) {
+        const ctx: any = (error as any).context;
+        try {
+          const body = await ctx?.json?.();
+          if (body?.error) throw new Error(body.error);
+        } catch (_) { /* ignore */ }
+        throw error;
+      }
       if (data?.error) throw new Error(data.error);
       return data as GAResponse;
     },
