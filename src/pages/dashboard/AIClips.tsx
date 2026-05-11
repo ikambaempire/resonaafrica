@@ -137,10 +137,20 @@ async function trimNativeClip(
     toast.loading("Downloading source…", { id: "clip-dl" });
     let fileData: Uint8Array;
     try {
-      fileData = await fetchFile(mediaUrl);
+      // Direct fetch first — more reliable than @ffmpeg/util's fetchFile for Supabase storage URLs
+      const res = await fetch(mediaUrl, { mode: "cors", credentials: "omit", cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      const buf = await res.arrayBuffer();
+      if (!buf.byteLength) throw new Error("Empty response from source media");
+      fileData = new Uint8Array(buf);
     } catch (netErr) {
-      const msg = (netErr as Error)?.message || "network";
-      throw new Error(`FETCH_FAILED: ${msg}`);
+      try {
+        // Fallback to ffmpeg's helper (handles a few odd cases)
+        fileData = await fetchFile(mediaUrl);
+      } catch {
+        const msg = (netErr as Error)?.message || "network";
+        throw new Error(`FETCH_FAILED: ${msg}`);
+      }
     }
     await ff.writeFile(inName, fileData);
 
@@ -255,6 +265,351 @@ function downloadSrt(clips: Clip[], episodeTitle: string) {
   a.download = `${episodeTitle.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-clips.srt`;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+// =====================================================================
+// ClipEditor — Premiere/Canva-style editor for step 3
+// =====================================================================
+type Episode = {
+  id: string; title: string; hosting?: string | null; media_url?: string | null;
+  media_kind?: string | null; embed_provider?: string | null; embed_url?: string | null;
+  duration_seconds?: number | null;
+};
+type RenderedMap = Record<number, RenderedClip>;
+type DLError = { index: number; message: string } | null;
+
+function ClipEditor(props: {
+  ep: Episode;
+  ytId: string | null;
+  maxDur: number;
+  draftClips: Clip[];
+  previewIndex: number | null;
+  setPreviewIndex: (i: number | null) => void;
+  updateClip: (i: number, patch: Partial<Clip>) => void;
+  downloadClip: (c: Clip, i: number) => void;
+  shareNative: (c: Clip, i: number) => Promise<RenderedClip | null>;
+  rendered: RenderedMap;
+  downloadingIndex: number | null;
+  downloadError: DLError;
+  setDownloadError: (e: DLError) => void;
+  dirty: boolean;
+  saving: boolean;
+  saveAll: () => void;
+  gotoStep: (n: 1 | 2 | 3) => void;
+  onExportSrt: () => void;
+  videoRef: React.RefObject<HTMLVideoElement>;
+  audioRef: React.RefObject<HTMLAudioElement>;
+  playClip: (i: number) => void;
+}) {
+  const { ep, ytId, maxDur, draftClips, previewIndex, setPreviewIndex, updateClip,
+    downloadClip, shareNative, rendered, downloadingIndex, downloadError, setDownloadError,
+    dirty, saving, saveAll, gotoStep, onExportSrt, videoRef, audioRef, playClip } = props;
+
+  const isNative = ep.hosting === "native" && !!ep.media_url;
+  const activeIdx = previewIndex ?? 0;
+  const active = draftClips[activeIdx] ?? draftClips[0];
+  const [playhead, setPlayhead] = useState(0);
+
+  // Track playhead from media element
+  useEffect(() => {
+    const el = (ep.media_kind === "video" ? videoRef.current : audioRef.current) as HTMLMediaElement | null;
+    if (!el) return;
+    const onT = () => setPlayhead(el.currentTime);
+    el.addEventListener("timeupdate", onT);
+    return () => el.removeEventListener("timeupdate", onT);
+  }, [ep.media_kind, videoRef, audioRef, isNative, activeIdx]);
+
+  const seekTo = (t: number) => {
+    const el = (ep.media_kind === "video" ? videoRef.current : audioRef.current) as HTMLMediaElement | null;
+    if (el) { el.currentTime = Math.max(0, Math.min(maxDur, t)); }
+    setPlayhead(t);
+  };
+
+  const onTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - r.left) / r.width;
+    seekTo(pct * maxDur);
+  };
+
+  const pct = (v: number) => `${Math.max(0, Math.min(100, (v / maxDur) * 100))}%`;
+
+  // Tick marks every ~10% of timeline
+  const ticks = Array.from({ length: 11 }, (_, i) => i);
+
+  return (
+    <Card className="rounded-2xl overflow-hidden border-border">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between gap-3 flex-wrap p-3 border-b border-border bg-secondary/40">
+        <div className="flex items-center gap-2 min-w-0">
+          <Scissors className="w-4 h-4 text-accent shrink-0" />
+          <span className="font-display font-bold text-sm truncate">{ep.title}</span>
+          <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent/15 text-accent">Editor</span>
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <Button variant="outline" size="sm" onClick={() => gotoStep(2)}>← Re-prompt</Button>
+          <Button variant="outline" size="sm" onClick={saveAll} disabled={!dirty || saving}>
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Save className="w-3.5 h-3.5 mr-1" />} Save
+          </Button>
+          <Button variant="outline" size="sm" onClick={onExportSrt}>
+            <Download className="w-3.5 h-3.5 mr-1" /> .srt
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-[1fr_320px] gap-0">
+        {/* Left: preview + timeline */}
+        <div className="p-4 space-y-3 border-b lg:border-b-0 lg:border-r border-border bg-background">
+          {/* Preview */}
+          <div className="rounded-xl overflow-hidden bg-black border border-border aspect-video flex items-center justify-center">
+            {isNative && ep.media_kind === "video" ? (
+              <video ref={videoRef} src={ep.media_url!} controls className="w-full h-full object-contain" />
+            ) : isNative ? (
+              <div className="w-full p-6 flex flex-col items-center gap-3">
+                <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center">
+                  <Play className="w-7 h-7 text-accent" />
+                </div>
+                <audio ref={audioRef} src={ep.media_url!} controls className="w-full max-w-md" />
+              </div>
+            ) : ytId ? (
+              <iframe
+                key={`${ytId}-${active?.start_seconds}`}
+                className="w-full h-full"
+                src={`https://www.youtube.com/embed/${ytId}?start=${Math.floor(active?.start_seconds ?? 0)}&end=${Math.floor(active?.end_seconds ?? 0)}`}
+                allow="autoplay; encrypted-media"
+                title={active?.title ?? "preview"}
+              />
+            ) : (
+              <p className="text-xs text-muted-foreground p-6 text-center">No previewable source for this episode.</p>
+            )}
+          </div>
+
+          {/* Timeline ribbon */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground">
+              <span>{fmt(playhead)}</span>
+              <span className="text-accent">Total {fmt(maxDur)}</span>
+            </div>
+            <div
+              onClick={onTimelineClick}
+              className="relative h-14 rounded-lg bg-secondary/60 border border-border cursor-pointer overflow-hidden select-none"
+              role="slider"
+              aria-label="Episode timeline"
+            >
+              {/* Tick marks */}
+              {ticks.map((i) => (
+                <div key={i} className="absolute top-0 bottom-0 w-px bg-border/60" style={{ left: `${i * 10}%` }} />
+              ))}
+              {/* Clip segments */}
+              {draftClips.map((c, i) => {
+                const left = (c.start_seconds / maxDur) * 100;
+                const width = Math.max(0.5, ((c.end_seconds - c.start_seconds) / maxDur) * 100);
+                const isActive = i === activeIdx;
+                return (
+                  <button
+                    key={i}
+                    onClick={(e) => { e.stopPropagation(); setPreviewIndex(i); seekTo(c.start_seconds); }}
+                    className={`absolute top-1.5 bottom-1.5 rounded-md text-[10px] font-semibold px-1.5 truncate text-left transition-all ${
+                      isActive
+                        ? "bg-accent text-accent-foreground shadow-gold ring-2 ring-accent z-10"
+                        : "bg-accent/30 text-foreground hover:bg-accent/50"
+                    }`}
+                    style={{ left: `${left}%`, width: `${width}%` }}
+                    title={`${c.title} • ${fmt(c.start_seconds)}–${fmt(c.end_seconds)}`}
+                  >
+                    {i + 1}. {c.title}
+                  </button>
+                );
+              })}
+              {/* Playhead */}
+              <div
+                className="absolute top-0 bottom-0 w-0.5 bg-foreground pointer-events-none z-20"
+                style={{ left: pct(playhead) }}
+              >
+                <div className="absolute -top-0.5 -left-1 w-2.5 h-2.5 rotate-45 bg-foreground" />
+              </div>
+            </div>
+            <div className="flex justify-between text-[10px] font-mono text-muted-foreground">
+              {ticks.filter((_, i) => i % 2 === 0).map((i) => (
+                <span key={i}>{fmt((i / 10) * maxDur)}</span>
+              ))}
+            </div>
+          </div>
+
+          {/* Trim handles for selected clip */}
+          {active && (
+            <div className="rounded-xl border border-accent/40 bg-accent/5 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <Input
+                    value={active.title}
+                    onChange={(e) => updateClip(activeIdx, { title: e.target.value })}
+                    className="font-semibold bg-transparent border-0 px-0 h-7 text-sm focus-visible:ring-0"
+                  />
+                  <Input
+                    value={active.hook}
+                    onChange={(e) => updateClip(activeIdx, { hook: e.target.value })}
+                    className="text-xs text-muted-foreground bg-transparent border-0 px-0 h-6 focus-visible:ring-0"
+                  />
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-accent-foreground flex items-center gap-1 shrink-0 font-semibold">
+                  <Clock className="w-3 h-3" /> {Math.round(active.end_seconds - active.start_seconds)}s
+                </span>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground mb-1">
+                  <span>In {fmt(active.start_seconds)}</span>
+                  <span>Out {fmt(active.end_seconds)}</span>
+                </div>
+                <Slider
+                  value={[active.start_seconds, active.end_seconds]}
+                  min={0} max={maxDur} step={1}
+                  onValueChange={([s, e]) =>
+                    updateClip(activeIdx, {
+                      start_seconds: Math.min(s, e - 1),
+                      end_seconds: Math.max(e, s + 1),
+                    })
+                  }
+                />
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <label className="text-[10px] text-muted-foreground">
+                    Start (sec)
+                    <Input type="number" min={0} max={maxDur} value={Math.floor(active.start_seconds)}
+                      onChange={(e) => updateClip(activeIdx, {
+                        start_seconds: Math.min(active.end_seconds - 1, Math.max(0, +e.target.value)),
+                      })} />
+                  </label>
+                  <label className="text-[10px] text-muted-foreground">
+                    End (sec)
+                    <Input type="number" min={0} max={maxDur} value={Math.floor(active.end_seconds)}
+                      onChange={(e) => updateClip(activeIdx, {
+                        end_seconds: Math.max(active.start_seconds + 1, Math.min(maxDur, +e.target.value)),
+                      })} />
+                  </label>
+                </div>
+              </div>
+
+              {/* Action row */}
+              <div className="flex flex-wrap gap-2">
+                {isNative ? (
+                  <Button size="sm" onClick={() => playClip(activeIdx)} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Play className="w-3.5 h-3.5 mr-1" /> Preview
+                  </Button>
+                ) : ytId ? (
+                  <Button size="sm" onClick={() => setPreviewIndex(activeIdx)} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Play className="w-3.5 h-3.5 mr-1" /> Preview
+                  </Button>
+                ) : null}
+
+                {isNative ? (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => downloadClip(active, activeIdx)} disabled={downloadingIndex === activeIdx}>
+                      {downloadingIndex === activeIdx
+                        ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Preparing…</>
+                        : <><Download className="w-3.5 h-3.5 mr-1" /> Download</>}
+                    </Button>
+                    {rendered[activeIdx] ? (
+                      <ShareButtons
+                        shareText={`${active.title} — ${active.hook}`}
+                        file={new File([rendered[activeIdx].blob], rendered[activeIdx].filename, { type: rendered[activeIdx].mime })}
+                      />
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => shareNative(active, activeIdx)} disabled={downloadingIndex === activeIdx}>
+                        {downloadingIndex === activeIdx
+                          ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                          : <Share2 className="w-3.5 h-3.5 mr-1" />} Prepare to share
+                      </Button>
+                    )}
+                  </>
+                ) : ytId ? (
+                  <>
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={`https://youtu.be/${ytId}?t=${Math.floor(active.start_seconds)}`} target="_blank" rel="noreferrer">
+                        <Link2 className="w-3.5 h-3.5 mr-1" /> Open at timestamp
+                      </a>
+                    </Button>
+                    <ShareButtons
+                      shareText={`${active.title} — ${active.hook}`}
+                      shareUrl={`https://youtu.be/${ytId}?t=${Math.floor(active.start_seconds)}`}
+                    />
+                  </>
+                ) : null}
+              </div>
+
+              {downloadError?.index === activeIdx && (
+                <Alert variant="destructive" className="mt-1">
+                  <AlertTriangle className="w-4 h-4" />
+                  <AlertTitle>Couldn't download this clip</AlertTitle>
+                  <AlertDescription className="space-y-2">
+                    <p className="text-sm">Try these checks, then hit Retry:</p>
+                    <ul className="list-disc pl-5 text-xs space-y-1">
+                      <li>Check your internet connection.</li>
+                      <li>Disable ad-blockers or privacy extensions for this site.</li>
+                      <li>If the source file was deleted, re-upload it under <strong>Content → Upload from device</strong>.</li>
+                      <li>Try Chrome or Edge (best FFmpeg support).</li>
+                    </ul>
+                    <details className="text-[11px] opacity-80">
+                      <summary className="cursor-pointer">Technical details</summary>
+                      <code className="block mt-1 break-all">{downloadError.message}</code>
+                    </details>
+                    <div className="flex gap-2 pt-1">
+                      <Button size="sm" onClick={() => downloadClip(active, activeIdx)} disabled={downloadingIndex === activeIdx}
+                        className="bg-accent text-accent-foreground hover:bg-accent/90">
+                        <RefreshCw className="w-3.5 h-3.5 mr-1" /> Retry
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setDownloadError(null)}>Dismiss</Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {ep.hosting === "embed" && (
+                <p className="text-[11px] text-muted-foreground">
+                  Hosted on {ep.embed_provider ?? "external platform"}. We share a timestamped link instead of an MP4. To produce a downloadable clip, re-upload the source under <strong className="text-foreground">Content → Upload from device</strong>.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Right: clip list */}
+        <div className="bg-secondary/20 lg:max-h-[640px] lg:overflow-y-auto">
+          <div className="px-4 py-3 border-b border-border sticky top-0 bg-secondary/80 backdrop-blur z-10">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+              {draftClips.length} suggested clips
+            </p>
+          </div>
+          <ul className="divide-y divide-border">
+            {draftClips.map((c, i) => {
+              const isActive = i === activeIdx;
+              const dur = Math.round(c.end_seconds - c.start_seconds);
+              return (
+                <li key={i}>
+                  <button
+                    onClick={() => { setPreviewIndex(i); seekTo(c.start_seconds); }}
+                    className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-colors ${
+                      isActive ? "bg-accent/10 border-l-4 border-accent" : "hover:bg-secondary/60 border-l-4 border-transparent"
+                    }`}
+                  >
+                    <span className={`shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold ${
+                      isActive ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground"
+                    }`}>{i + 1}</span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold truncate">{c.title}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{c.hook}</p>
+                      <p className="text-[10px] font-mono text-muted-foreground mt-0.5">
+                        {fmt(c.start_seconds)} – {fmt(c.end_seconds)} · {dur}s
+                      </p>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+    </Card>
+  );
 }
 
 export default function AIClips() {
@@ -506,205 +861,37 @@ export default function AIClips() {
         </Card>
       )}
 
-      {/* STEP 3: Review actions header */}
+      {/* STEP 3: Editor (Premiere/Canva style) */}
       {step === 3 && draftClips.length > 0 && (
-        <Card className="p-6 rounded-2xl space-y-3">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div>
-              <h2 className="font-display font-bold text-lg flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-accent text-accent-foreground flex items-center justify-center text-xs font-bold">3</span>
-                Review, edit & download
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">Fine-tune timestamps below, then preview or download each clip.</p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={() => setStep(2)}>← Re-prompt</Button>
-              <Button variant="outline" size="sm" onClick={saveAll} disabled={!dirty || saving}>
-                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />} Save edits
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => downloadSrt(draftClips, ep?.title ?? "clips")}>
-                <Download className="w-4 h-4 mr-1" /> Export .srt
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {ep?.hosting === "native" && ep.media_url && (
-        <div className={previewIndex !== null ? "flex justify-center" : "hidden"}>
-          {ep.media_kind === "video" ? (
-            <video
-              ref={videoRef}
-              src={ep.media_url}
-              controls
-              className="rounded-xl border border-border bg-black w-full max-w-sm aspect-video"
-            />
-          ) : (
-            <audio ref={audioRef} src={ep.media_url} controls className="w-full max-w-md" />
-          )}
-        </div>
+        <ClipEditor
+          ep={ep!}
+          ytId={ytId}
+          maxDur={maxDur}
+          draftClips={draftClips}
+          previewIndex={previewIndex}
+          setPreviewIndex={setPreviewIndex}
+          updateClip={updateClip}
+          downloadClip={downloadClip}
+          shareNative={shareNative}
+          rendered={rendered}
+          downloadingIndex={downloadingIndex}
+          downloadError={downloadError}
+          setDownloadError={setDownloadError}
+          dirty={dirty}
+          saving={saving}
+          saveAll={saveAll}
+          gotoStep={setStep}
+          onExportSrt={() => downloadSrt(draftClips, ep?.title ?? "clips")}
+          videoRef={videoRef}
+          audioRef={audioRef}
+          playClip={playClip}
+        />
       )}
 
       {step === 3 && ep?.transcript && (
         <Card className="p-6 rounded-2xl">
           <h2 className="font-display font-bold text-xl mb-3 flex items-center gap-2"><FileText className="w-5 h-5 text-accent" /> Transcript outline</h2>
           <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-sans leading-relaxed">{ep.transcript}</pre>
-        </Card>
-      )}
-
-      {step === 3 && draftClips.length > 0 && (
-        <Card className="p-6 rounded-2xl">
-          <h2 className="font-display font-bold text-xl mb-4 flex items-center gap-2">
-            <Scissors className="w-5 h-5 text-accent" /> Suggested clips
-          </h2>
-          <div className="space-y-4">
-            {draftClips.map((c, i) => {
-              const isActive = previewIndex === i;
-              const dur = Math.max(0, c.end_seconds - c.start_seconds);
-              return (
-                <div key={i} className={`rounded-xl p-5 space-y-4 border transition-all ${isActive ? "border-accent bg-accent/5" : "border-border bg-secondary/30"}`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <Input
-                        value={c.title}
-                        onChange={(e) => updateClip(i, { title: e.target.value })}
-                        className="font-semibold bg-transparent border-0 px-0 h-auto text-base focus-visible:ring-0"
-                      />
-                      <Input
-                        value={c.hook}
-                        onChange={(e) => updateClip(i, { hook: e.target.value })}
-                        className="mt-1 text-sm text-muted-foreground bg-transparent border-0 px-0 h-auto focus-visible:ring-0"
-                      />
-                    </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-accent/15 text-accent flex items-center gap-1 shrink-0">
-                      <Clock className="w-3 h-3" /> {Math.round(dur)}s
-                    </span>
-                  </div>
-
-                  {/* Editable timestamps */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
-                      <span>Start {fmt(c.start_seconds)}</span>
-                      <span>End {fmt(c.end_seconds)}</span>
-                    </div>
-                    <Slider
-                      value={[c.start_seconds, c.end_seconds]}
-                      min={0}
-                      max={maxDur}
-                      step={1}
-                      onValueChange={([s, e]) => updateClip(i, { start_seconds: Math.min(s, e - 1), end_seconds: Math.max(e, s + 1) })}
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="text-xs text-muted-foreground">
-                        Start (sec)
-                        <Input type="number" min={0} max={maxDur} value={Math.floor(c.start_seconds)}
-                          onChange={(e) => updateClip(i, { start_seconds: Math.min(c.end_seconds - 1, Math.max(0, +e.target.value)) })} />
-                      </label>
-                      <label className="text-xs text-muted-foreground">
-                        End (sec)
-                        <Input type="number" min={0} max={maxDur} value={Math.floor(c.end_seconds)}
-                          onChange={(e) => updateClip(i, { end_seconds: Math.max(c.start_seconds + 1, Math.min(maxDur, +e.target.value)) })} />
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {ep?.hosting === "native" && ep.media_url ? (
-                      <Button size="sm" onClick={() => playClip(i)} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                        {isActive ? <Pause className="w-3.5 h-3.5 mr-1" /> : <Play className="w-3.5 h-3.5 mr-1" />}
-                        {isActive ? "Playing" : "Preview"}
-                      </Button>
-                    ) : ytId ? (
-                      <Button size="sm" onClick={() => setPreviewIndex(i)} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                        <Play className="w-3.5 h-3.5 mr-1" /> Preview
-                      </Button>
-                    ) : null}
-
-                    {ep?.hosting === "native" && ep.media_url ? (
-                      <>
-                        <Button size="sm" variant="outline" onClick={() => downloadClip(c, i)} disabled={downloadingIndex === i}>
-                          {downloadingIndex === i ? (
-                            <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Preparing…</>
-                          ) : (
-                            <><Download className="w-3.5 h-3.5 mr-1" /> Download</>
-                          )}
-                        </Button>
-                        {rendered[i] ? (
-                          <ShareButtons
-                            shareText={`${c.title} — ${c.hook}`}
-                            file={new File([rendered[i].blob], rendered[i].filename, { type: rendered[i].mime })}
-                          />
-                        ) : (
-                          <Button size="sm" variant="outline" onClick={() => shareNative(c, i)} disabled={downloadingIndex === i}>
-                            {downloadingIndex === i ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : <Share2 className="w-3.5 h-3.5 mr-1" />}
-                            Prepare to share
-                          </Button>
-                        )}
-                      </>
-                    ) : ytId ? (
-                      <>
-                        <Button size="sm" variant="outline" asChild>
-                          <a href={`https://youtu.be/${ytId}?t=${Math.floor(c.start_seconds)}`} target="_blank" rel="noreferrer">
-                            <Link2 className="w-3.5 h-3.5 mr-1" /> Open at timestamp
-                          </a>
-                        </Button>
-                        <ShareButtons
-                          shareText={`${c.title} — ${c.hook}`}
-                          shareUrl={`https://youtu.be/${ytId}?t=${Math.floor(c.start_seconds)}`}
-                        />
-                      </>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => downloadClip(c, i)}>
-                        <ExternalLink className="w-3.5 h-3.5 mr-1" /> Open source
-                      </Button>
-                    )}
-                  </div>
-
-                  {ep?.hosting === "embed" && (
-                    <p className="text-[11px] text-muted-foreground -mt-1">
-                      Hosted on {ep.embed_provider ?? "external platform"}. We share a timestamped link instead of an MP4 file. To produce a downloadable clip, re-upload the source under <strong className="text-foreground">Content → Upload from device</strong>.
-                    </p>
-                  )}
-
-                  {downloadError?.index === i && (
-                    <Alert variant="destructive" className="mt-1">
-                      <AlertTriangle className="w-4 h-4" />
-                      <AlertTitle>Couldn't download this clip</AlertTitle>
-                      <AlertDescription className="space-y-2">
-                        <p className="text-sm">Try these quick checks, then hit Retry:</p>
-                        <ul className="list-disc pl-5 text-xs space-y-1">
-                          <li>Check your internet connection.</li>
-                          <li>Disable ad-blockers or privacy extensions for this site.</li>
-                          <li>If the source file was deleted, re-upload it under <strong>Content → Upload from device</strong>.</li>
-                          <li>Try a different browser (Chrome / Edge work best for FFmpeg).</li>
-                        </ul>
-                        <details className="text-[11px] opacity-80">
-                          <summary className="cursor-pointer">Technical details</summary>
-                          <code className="block mt-1 break-all">{downloadError.message}</code>
-                        </details>
-                        <div className="flex gap-2 pt-1">
-                          <Button size="sm" onClick={() => downloadClip(c, i)} disabled={downloadingIndex === i}
-                            className="bg-accent text-accent-foreground hover:bg-accent/90">
-                            <RefreshCw className="w-3.5 h-3.5 mr-1" /> Retry download
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => setDownloadError(null)}>Dismiss</Button>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {ytId && isActive && (
-                    <iframe
-                      className="w-full aspect-video rounded-lg"
-                      src={`https://www.youtube.com/embed/${ytId}?start=${Math.floor(c.start_seconds)}&end=${Math.floor(c.end_seconds)}&autoplay=1`}
-                      allow="autoplay; encrypted-media"
-                      title={c.title}
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
         </Card>
       )}
 
