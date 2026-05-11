@@ -1034,16 +1034,24 @@ export default function AIClips() {
 
   // Cache rendered blobs per clip index so Share doesn't re-render
   const [rendered, setRendered] = useState<RenderedMap>({});
+  const [downloadProgress, setDownloadProgress] = useState(0);
 
   const renderNative = async (c: Clip, index: number): Promise<RenderedClip | null> => {
     if (!ep || ep.hosting !== "native" || !ep.media_url) return null;
     const cacheKey = getClipCacheKey(c, index, exportSettings);
     if (rendered[cacheKey]) return rendered[cacheKey];
     const kind = ep.media_kind === "video" ? "video" : "audio";
+    // Clamp to actual duration before rendering
+    const safeClip: Clip = {
+      ...c,
+      start_seconds: Math.max(0, Math.min(maxDur - 1, c.start_seconds)),
+      end_seconds: Math.max(c.start_seconds + 1, Math.min(maxDur, c.end_seconds)),
+    };
     setDownloadingIndex(index);
+    setDownloadProgress(0);
     setDownloadError(null);
     try {
-      const r = await trimNativeClip(ep.media_url, c, ep.title, kind, exportSettings);
+      const r = await trimNativeClip(ep.media_url, safeClip, ep.title, kind, exportSettings, (pct) => setDownloadProgress(pct));
       setRendered((prev) => ({ ...prev, [cacheKey]: r }));
       return r;
     } catch (e) {
@@ -1054,6 +1062,7 @@ export default function AIClips() {
       return null;
     } finally {
       setDownloadingIndex(null);
+      setDownloadProgress(0);
     }
   };
 
