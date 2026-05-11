@@ -428,10 +428,17 @@ export type Database = {
       }
       premium_subscriptions: {
         Row: {
+          cancel_at_period_end: boolean
           created_at: string
           current_period_end: string | null
+          current_period_start: string | null
+          environment: string
           id: string
+          paddle_customer_id: string | null
+          paddle_subscription_id: string | null
           podcast_id: string
+          price_id: string | null
+          product_id: string | null
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
@@ -439,10 +446,17 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
           id?: string
+          paddle_customer_id?: string | null
+          paddle_subscription_id?: string | null
           podcast_id: string
+          price_id?: string | null
+          product_id?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -450,10 +464,17 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
           id?: string
+          paddle_customer_id?: string | null
+          paddle_subscription_id?: string | null
           podcast_id?: string
+          price_id?: string | null
+          product_id?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
@@ -567,9 +588,12 @@ export type Database = {
           amount_cents: number
           created_at: string
           currency: string
+          environment: string
           episode_id: string | null
           id: string
           message: string | null
+          paddle_transaction_id: string | null
+          platform_fee_cents: number
           podcast_id: string
           status: string
           stripe_session_id: string | null
@@ -580,9 +604,12 @@ export type Database = {
           amount_cents: number
           created_at?: string
           currency?: string
+          environment?: string
           episode_id?: string | null
           id?: string
           message?: string | null
+          paddle_transaction_id?: string | null
+          platform_fee_cents?: number
           podcast_id: string
           status?: string
           stripe_session_id?: string | null
@@ -593,9 +620,12 @@ export type Database = {
           amount_cents?: number
           created_at?: string
           currency?: string
+          environment?: string
           episode_id?: string | null
           id?: string
           message?: string | null
+          paddle_transaction_id?: string | null
+          platform_fee_cents?: number
           podcast_id?: string
           status?: string
           stripe_session_id?: string | null
