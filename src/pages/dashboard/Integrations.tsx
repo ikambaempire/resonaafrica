@@ -206,7 +206,7 @@ export default function Integrations() {
               </select>
               {podcasts.length === 0 && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  No podcasts yet. <Link to="/dashboard/content" className="text-accent underline">Create one first</Link>.
+                  No podcasts yet — we'll auto-create one called <strong>"{channel.title}"</strong> when you click Import. Or <Link to="/dashboard/content" className="text-accent underline">create one manually</Link>.
                 </p>
               )}
             </div>
@@ -221,7 +221,11 @@ export default function Integrations() {
               ))}
             </div>
 
-            <Button onClick={importSelected} disabled={busy || !podcastId} className="bg-red-500 text-white hover:bg-red-600">
+            <Button
+              onClick={importSelected}
+              disabled={busy || Object.values(selected).filter(Boolean).length === 0}
+              className="bg-red-500 text-white hover:bg-red-600"
+            >
               {busy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
               Import {Object.values(selected).filter(Boolean).length} episodes
             </Button>
