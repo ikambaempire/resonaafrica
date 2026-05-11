@@ -577,6 +577,7 @@ function ClipEditor(props: {
   shareNative: (c: Clip, i: number) => Promise<RenderedClip | null>;
   rendered: RenderedMap;
   downloadingIndex: number | null;
+  downloadProgress: number;
   downloadError: DLError;
   setDownloadError: (e: DLError) => void;
   dirty: boolean;
