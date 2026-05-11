@@ -873,6 +873,16 @@ function ClipEditor(props: {
                 ) : null}
               </div>
 
+              {downloadingIndex === activeIdx && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Recording clip… {Math.round(downloadProgress)}%</span>
+                    <span>{fmt(active.start_seconds + ((active.end_seconds - active.start_seconds) * downloadProgress) / 100)} / {fmt(active.end_seconds)}</span>
+                  </div>
+                  <Progress value={downloadProgress} className="h-2" />
+                </div>
+              )}
+
               {downloadError?.index === activeIdx && (
                 <Alert variant="destructive" className="mt-1">
                   <AlertTriangle className="w-4 h-4" />
