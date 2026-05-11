@@ -53,7 +53,7 @@ export function EmbedPlayer({ provider, url, title }: { provider: string | null;
   let src = url;
   if (provider === "youtube") {
     const m = url.match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/);
-    if (m) src = `https://www.youtube.com/embed/${m[1]}`;
+    if (m) src = `https://www.youtube.com/embed/${m[1]}?autoplay=1&rel=0&playsinline=1&modestbranding=1`;
   } else if (provider === "spotify") {
     const m = url.match(/open\.spotify\.com\/(episode|show|track)\/([\w-]+)/);
     if (m) src = `https://open.spotify.com/embed/${m[1]}/${m[2]}`;
@@ -61,6 +61,7 @@ export function EmbedPlayer({ provider, url, title }: { provider: string | null;
   return (
     <div className="rounded-2xl overflow-hidden border border-border">
       <iframe
+        key={src}
         src={src}
         title={title}
         className="w-full"

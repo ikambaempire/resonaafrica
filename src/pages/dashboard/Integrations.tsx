@@ -9,7 +9,8 @@ import { Puzzle, Youtube, Music, Mic, Apple, ExternalLink, Rss, Copy, Loader2, C
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useMyPodcasts } from "@/hooks/usePodcasts";
+import { useMyPodcasts, useCreatePodcast, slugify } from "@/hooks/usePodcasts";
+import { useAuth } from "@/contexts/AuthContext";
 
 const guides = [
   {
@@ -71,7 +72,9 @@ const guides = [
 
 export default function Integrations() {
   const rssUrl = `${window.location.origin}/c/YOUR-SLUG/rss.xml`;
-  const { data: podcasts = [] } = useMyPodcasts();
+  const { data: podcasts = [], refetch: refetchPodcasts } = useMyPodcasts();
+  const createPodcast = useCreatePodcast();
+  const { user } = useAuth();
 
   const [channelInput, setChannelInput] = useState("");
   const [podcastId, setPodcastId] = useState<string>("");
@@ -100,17 +103,46 @@ export default function Integrations() {
     } finally { setBusy(false); }
   }
 
+  async function createPodcastFromChannel(): Promise<string | null> {
+    if (!channel || !user) return null;
+    try {
+      const created = await createPodcast.mutateAsync({
+        owner_id: user.id,
+        title: channel.title,
+        slug: `${slugify(channel.title)}-${Math.random().toString(36).slice(2, 6)}`,
+        description: `${channel.title} — imported from YouTube`,
+        category: "Other",
+        is_published: true,
+      } as any);
+      await refetchPodcasts();
+      setPodcastId(created.id);
+      toast.success(`Created podcast "${created.title}"`);
+      return created.id;
+    } catch (e: any) {
+      toast.error(e.message || "Could not create podcast");
+      return null;
+    }
+  }
+
   async function importSelected() {
-    if (!podcastId) return toast.error("Pick a podcast to import into");
+    let pid = podcastId;
+    if (!pid) {
+      // Auto-create a podcast from the channel if user hasn't picked one
+      pid = (await createPodcastFromChannel()) || "";
+      if (!pid) return;
+    }
     const picked = videos.filter((v) => selected[v.videoId]);
     if (!picked.length) return toast.error("Select at least one video");
     setBusy(true);
     try {
       const { data, error } = await supabase.functions.invoke("import-youtube-channel", {
-        body: { action: "import", podcastId, channelId: channel!.channelId, handle: channel!.handle, videos: picked },
+        body: { action: "import", podcastId: pid, channelId: channel!.channelId, handle: channel!.handle, videos: picked },
       });
-      if (error) throw error;
-      toast.success(`Imported ${data?.inserted ?? picked.length} episodes`);
+      if (error) throw new Error(error.message || "Edge function failed");
+      if (data?.ok === false) throw new Error(data.error || "Import failed");
+      toast.success(`Imported ${data?.inserted ?? picked.length} episodes — syncing view counts…`);
+      // Kick off an immediate stats sync so view counts show up right away
+      supabase.functions.invoke("sync-youtube-views").catch(() => {});
       setVideos([]); setChannel(null); setChannelInput("");
     } catch (e: any) {
       toast.error(e.message || "Import failed");
@@ -174,7 +206,7 @@ export default function Integrations() {
               </select>
               {podcasts.length === 0 && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  No podcasts yet. <Link to="/dashboard/content" className="text-accent underline">Create one first</Link>.
+                  No podcasts yet — we'll auto-create one called <strong>"{channel.title}"</strong> when you click Import. Or <Link to="/dashboard/content" className="text-accent underline">create one manually</Link>.
                 </p>
               )}
             </div>
@@ -189,7 +221,11 @@ export default function Integrations() {
               ))}
             </div>
 
-            <Button onClick={importSelected} disabled={busy || !podcastId} className="bg-red-500 text-white hover:bg-red-600">
+            <Button
+              onClick={importSelected}
+              disabled={busy || Object.values(selected).filter(Boolean).length === 0}
+              className="bg-red-500 text-white hover:bg-red-600"
+            >
               {busy ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
               Import {Object.values(selected).filter(Boolean).length} episodes
             </Button>
