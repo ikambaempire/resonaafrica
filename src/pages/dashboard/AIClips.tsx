@@ -137,10 +137,20 @@ async function trimNativeClip(
     toast.loading("Downloading source…", { id: "clip-dl" });
     let fileData: Uint8Array;
     try {
-      fileData = await fetchFile(mediaUrl);
+      // Direct fetch first — more reliable than @ffmpeg/util's fetchFile for Supabase storage URLs
+      const res = await fetch(mediaUrl, { mode: "cors", credentials: "omit", cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      const buf = await res.arrayBuffer();
+      if (!buf.byteLength) throw new Error("Empty response from source media");
+      fileData = new Uint8Array(buf);
     } catch (netErr) {
-      const msg = (netErr as Error)?.message || "network";
-      throw new Error(`FETCH_FAILED: ${msg}`);
+      try {
+        // Fallback to ffmpeg's helper (handles a few odd cases)
+        fileData = await fetchFile(mediaUrl);
+      } catch {
+        const msg = (netErr as Error)?.message || "network";
+        throw new Error(`FETCH_FAILED: ${msg}`);
+      }
     }
     await ff.writeFile(inName, fileData);
 
