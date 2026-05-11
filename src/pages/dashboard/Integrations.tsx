@@ -9,7 +9,8 @@ import { Puzzle, Youtube, Music, Mic, Apple, ExternalLink, Rss, Copy, Loader2, C
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useMyPodcasts } from "@/hooks/usePodcasts";
+import { useMyPodcasts, useCreatePodcast, slugify } from "@/hooks/usePodcasts";
+import { useAuth } from "@/contexts/AuthContext";
 
 const guides = [
   {
