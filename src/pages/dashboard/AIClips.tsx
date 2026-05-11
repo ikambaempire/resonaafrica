@@ -976,7 +976,52 @@ export default function AIClips() {
     setStep(persistedClips.length > 0 ? 3 : 1);
   }, [selected, persistedClips]);
 
-  const maxDur = Math.max(60, Number(ep?.duration_seconds) || 1800);
+  // Detect actual media duration from the source file (more accurate than stored value)
+  const [detectedDuration, setDetectedDuration] = useState<number | null>(null);
+  useEffect(() => {
+    setDetectedDuration(null);
+    if (!ep || ep.hosting !== "native" || !ep.media_url) return;
+    const probe = document.createElement(ep.media_kind === "video" ? "video" : "audio") as HTMLMediaElement;
+    probe.preload = "metadata";
+    probe.crossOrigin = "anonymous";
+    probe.src = ep.media_url;
+    const onLoaded = () => {
+      const d = probe.duration;
+      if (Number.isFinite(d) && d > 0) {
+        setDetectedDuration(d);
+        // Persist real duration if missing or off by >2s
+        const stored = Number(ep.duration_seconds) || 0;
+        if (Math.abs(stored - d) > 2) {
+          supabase.from("episodes").update({ duration_seconds: Math.round(d) }).eq("id", ep.id).then(() => {});
+        }
+      }
+      cleanup();
+    };
+    const cleanup = () => { probe.removeEventListener("loadedmetadata", onLoaded); probe.src = ""; probe.remove(); };
+    probe.addEventListener("loadedmetadata", onLoaded);
+    probe.addEventListener("error", cleanup);
+    return cleanup;
+  }, [ep?.id, ep?.media_url, ep?.hosting, ep?.media_kind, ep?.duration_seconds]);
+
+  const maxDur = Math.max(
+    10,
+    detectedDuration ?? (Number(ep?.duration_seconds) > 0 ? Number(ep!.duration_seconds) : 1800)
+  );
+
+  // Clamp draft clips to actual duration once detected
+  useEffect(() => {
+    if (!detectedDuration) return;
+    setDraftClips((prev) => {
+      const clamped = prev.map((c) => ({
+        ...c,
+        start_seconds: Math.max(0, Math.min(detectedDuration - 1, c.start_seconds)),
+        end_seconds: Math.max(0, Math.min(detectedDuration, c.end_seconds)),
+      })).filter((c) => c.end_seconds > c.start_seconds);
+      return clamped.length === prev.length && clamped.every((c, i) => c.start_seconds === prev[i].start_seconds && c.end_seconds === prev[i].end_seconds)
+        ? prev
+        : clamped;
+    });
+  }, [detectedDuration]);
 
   const generate = async () => {
     if (!selected) { toast.error("Choose an episode"); return; }
