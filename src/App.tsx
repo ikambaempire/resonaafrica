@@ -123,6 +123,7 @@ const App = () => (
                       <Route path="messages" element={<AdminMessages />} />
                       <Route path="ecosystem" element={<AdminEcosystem />} />
                       <Route path="reports" element={<AdminReports />} />
+                      <Route path="analytics" element={<AdminAnalytics />} />
                       <Route path="settings" element={<AdminSettings />} />
                     </Routes>
                   </AdminLayout>
