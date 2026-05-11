@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Sparkles, Loader2, Wand2, Play, Clock, Scissors, FileText, Download, Save, Lightbulb, ExternalLink, AlertTriangle, RefreshCw, Share2, Copy, Link2, MessageCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 
