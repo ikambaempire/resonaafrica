@@ -612,7 +612,7 @@ function ClipEditor(props: {
   );
 }
 
-
+export default function AIClips() {
   const { data: episodes = [] } = useMyEpisodes();
   const [selected, setSelected] = useState<string | undefined>();
   const [step, setStep] = useState<1 | 2 | 3>(1);
