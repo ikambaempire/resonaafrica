@@ -16,6 +16,7 @@ type Entry = {
   contact_email: string | null;
   logo_url: string | null;
   cover_url: string | null;
+  video_url: string | null;
   tags: string[] | null;
 };
 
