@@ -61,6 +61,7 @@ export function EmbedPlayer({ provider, url, title }: { provider: string | null;
   return (
     <div className="rounded-2xl overflow-hidden border border-border">
       <iframe
+        key={src}
         src={src}
         title={title}
         className="w-full"
