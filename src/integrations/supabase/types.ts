@@ -428,41 +428,88 @@ export type Database = {
           },
         ]
       }
+      profile_followers: {
+        Row: {
+          created_at: string
+          follower_id: string
+          id: string
+          profile_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          id?: string
+          profile_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_followers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
+          category: string | null
           company: string | null
           company_description: string | null
           company_slug: string | null
+          cover_url: string | null
           created_at: string
           full_name: string | null
           id: string
+          is_setup_complete: boolean
+          profile_kind: string | null
           social_links: Json | null
           updated_at: string
+          username: string | null
           website: string | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
+          category?: string | null
           company?: string | null
           company_description?: string | null
           company_slug?: string | null
+          cover_url?: string | null
           created_at?: string
           full_name?: string | null
           id: string
+          is_setup_complete?: boolean
+          profile_kind?: string | null
           social_links?: Json | null
           updated_at?: string
+          username?: string | null
           website?: string | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
+          category?: string | null
           company?: string | null
           company_description?: string | null
           company_slug?: string | null
+          cover_url?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
+          is_setup_complete?: boolean
+          profile_kind?: string | null
           social_links?: Json | null
           updated_at?: string
+          username?: string | null
           website?: string | null
         }
         Relationships: []
@@ -576,6 +623,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_public_profile: {
+        Args: { _username: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          category: string
+          company: string
+          cover_url: string
+          episode_count: number
+          follower_count: number
+          full_name: string
+          id: string
+          podcast_count: number
+          profile_kind: string
+          social_links: Json
+          username: string
+          website: string
+        }[]
+      }
       get_top_podcasts: {
         Args: { _limit?: number }
         Returns: {
