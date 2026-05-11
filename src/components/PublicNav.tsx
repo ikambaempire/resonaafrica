@@ -9,7 +9,7 @@ import { ChevronDown, Menu, X } from "lucide-react";
 const solutions = [
   { to: "/for-creators", label: "For Creators" },
   { to: "/for-organizations", label: "For Organizations" },
-  { to: "/services", label: "Services" },
+  { to: "/ecosystem", label: "Ecosystem" },
   { to: "/partnerships", label: "Partnerships" },
 ];
 
