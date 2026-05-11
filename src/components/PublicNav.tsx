@@ -114,7 +114,7 @@ export function PublicNav() {
             {[
               ...solutions,
               { to: "/how-it-works", label: "How It Works" },
-              { to: "/ecosystem", label: "Ecosystem" },
+              { to: "/services", label: "Services" },
               { to: "/discover", label: "Discover" },
               { to: "/about", label: "About" },
               { to: "/contact", label: "Contact" },
