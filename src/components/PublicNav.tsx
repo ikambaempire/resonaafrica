@@ -70,7 +70,7 @@ export function PublicNav() {
             )}
           </div>
           <Link to="/how-it-works" className="px-3 py-2 hover:text-foreground transition-colors">How It Works</Link>
-          <Link to="/ecosystem" className="px-3 py-2 hover:text-foreground transition-colors">Ecosystem</Link>
+          <Link to="/services" className="px-3 py-2 hover:text-foreground transition-colors">Services</Link>
           <Link to="/discover" className="px-3 py-2 hover:text-foreground transition-colors">Discover</Link>
           <Link to="/about" className="px-3 py-2 hover:text-foreground transition-colors">About</Link>
           <Link to="/contact" className="px-3 py-2 hover:text-foreground transition-colors">Contact</Link>
