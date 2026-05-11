@@ -18,6 +18,7 @@ import {
   FolderTree,
   Inbox,
   Network,
+  LineChart,
 } from "lucide-react";
 
 const navItems = [
