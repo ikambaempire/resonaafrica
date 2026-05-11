@@ -67,10 +67,13 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <ScrollToTop />
+            <OnboardingGate />
             <Routes>
               {/* Public */}
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route path="/u/:username" element={<ProfilePage />} />
               <Route path="/discover" element={<Discover />} />
               <Route path="/c/:slug" element={<ChannelPage />} />
               <Route path="/about" element={<About />} />
