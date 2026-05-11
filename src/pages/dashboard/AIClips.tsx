@@ -317,7 +317,9 @@ async function recordVideoClip(
       };
 
       await seekToTime(video, clip.start_seconds);
-      await audioCtx?.resume().catch(() => undefined);
+      if (audioCtx) {
+        await audioCtx.resume().catch(() => undefined);
+      }
       draw();
       recorder!.start(250);
       await video.play();
