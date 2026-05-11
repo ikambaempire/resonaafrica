@@ -165,6 +165,7 @@ export type Database = {
           sort_order: number
           tags: string[] | null
           updated_at: string
+          video_url: string | null
           website: string | null
         }
         Insert: {
@@ -183,6 +184,7 @@ export type Database = {
           sort_order?: number
           tags?: string[] | null
           updated_at?: string
+          video_url?: string | null
           website?: string | null
         }
         Update: {
@@ -201,6 +203,7 @@ export type Database = {
           sort_order?: number
           tags?: string[] | null
           updated_at?: string
+          video_url?: string | null
           website?: string | null
         }
         Relationships: []
