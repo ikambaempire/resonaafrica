@@ -517,6 +517,8 @@ export type Database = {
           updated_at: string
           username: string | null
           website: string | null
+          youtube_channel_id: string | null
+          youtube_handle: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -535,6 +537,8 @@ export type Database = {
           updated_at?: string
           username?: string | null
           website?: string | null
+          youtube_channel_id?: string | null
+          youtube_handle?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -553,6 +557,8 @@ export type Database = {
           updated_at?: string
           username?: string | null
           website?: string | null
+          youtube_channel_id?: string | null
+          youtube_handle?: string | null
         }
         Relationships: []
       }
