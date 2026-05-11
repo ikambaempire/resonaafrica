@@ -18,6 +18,7 @@ import {
   FolderTree,
   Inbox,
   Network,
+  LineChart,
 } from "lucide-react";
 
 const navItems = [
@@ -31,6 +32,7 @@ const navItems = [
   { title: "Revenue", url: "/admin/revenue", icon: CreditCard },
   { title: "Announcements", url: "/admin/announcements", icon: Megaphone },
   { title: "Reports", url: "/admin/reports", icon: FileText },
+  { title: "Google Analytics", url: "/admin/analytics", icon: LineChart },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];
 

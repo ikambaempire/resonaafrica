@@ -43,6 +43,7 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminEcosystem from "./pages/admin/AdminEcosystem";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import ProfilePage from "./pages/ProfilePage";
 import Onboarding from "./pages/Onboarding";
 import { OnboardingGate } from "./components/OnboardingGate";
@@ -122,6 +123,7 @@ const App = () => (
                       <Route path="messages" element={<AdminMessages />} />
                       <Route path="ecosystem" element={<AdminEcosystem />} />
                       <Route path="reports" element={<AdminReports />} />
+                      <Route path="analytics" element={<AdminAnalytics />} />
                       <Route path="settings" element={<AdminSettings />} />
                     </Routes>
                   </AdminLayout>
