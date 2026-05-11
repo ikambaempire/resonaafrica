@@ -408,15 +408,16 @@ async function trimNativeClip(
   clip: Clip,
   baseName: string,
   kind: "video" | "audio",
-  exportSettings: ExportSettings
+  exportSettings: ExportSettings,
+  onProgress?: (pct: number) => void
 ): Promise<RenderedClip> {
   if (!mediaUrl) throw new Error("Episode has no source media URL.");
 
   try {
     toast.loading("Recording selected range…", { id: "clip-dl" });
     const recorded = kind === "video"
-      ? await recordVideoClip(mediaUrl, clip, baseName, exportSettings)
-      : await trimWithMediaRecorder(mediaUrl, clip, baseName, kind);
+      ? await recordVideoClip(mediaUrl, clip, baseName, exportSettings, onProgress)
+      : await trimWithMediaRecorder(mediaUrl, clip, baseName, kind, onProgress);
 
     toast.loading("Optimizing clip for download…", { id: "clip-dl" });
 
