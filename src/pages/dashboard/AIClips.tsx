@@ -527,12 +527,14 @@ type Episode = {
   media_kind?: string | null; embed_provider?: string | null; embed_url?: string | null;
   duration_seconds?: number | null;
 };
-type RenderedMap = Record<number, RenderedClip>;
+type RenderedMap = Record<string, RenderedClip>;
 type DLError = { index: number; message: string } | null;
 
 function ClipEditor(props: {
   ep: Episode;
   ytId: string | null;
+  exportSettings: ExportSettings;
+  setExportSettings: React.Dispatch<React.SetStateAction<ExportSettings>>;
   maxDur: number;
   draftClips: Clip[];
   previewIndex: number | null;
@@ -553,13 +555,14 @@ function ClipEditor(props: {
   audioRef: React.RefObject<HTMLAudioElement>;
   playClip: (i: number) => void;
 }) {
-  const { ep, ytId, maxDur, draftClips, previewIndex, setPreviewIndex, updateClip,
+  const { ep, ytId, exportSettings, setExportSettings, maxDur, draftClips, previewIndex, setPreviewIndex, updateClip,
     downloadClip, shareNative, rendered, downloadingIndex, downloadError, setDownloadError,
     dirty, saving, saveAll, gotoStep, onExportSrt, videoRef, audioRef, playClip } = props;
 
   const isNative = ep.hosting === "native" && !!ep.media_url;
   const activeIdx = previewIndex ?? 0;
   const active = draftClips[activeIdx] ?? draftClips[0];
+  const activeCacheKey = active ? getClipCacheKey(active, activeIdx, exportSettings) : "";
   const [playhead, setPlayhead] = useState(0);
 
   // Track playhead from media element
@@ -611,28 +614,76 @@ function ClipEditor(props: {
       <div className="grid lg:grid-cols-[1fr_320px] gap-0">
         {/* Left: preview + timeline */}
         <div className="p-4 space-y-3 border-b lg:border-b-0 lg:border-r border-border bg-background">
-          {/* Preview */}
-          <div className="rounded-xl overflow-hidden bg-black border border-border aspect-video flex items-center justify-center">
-            {isNative && ep.media_kind === "video" ? (
-              <video ref={videoRef} src={ep.media_url!} controls className="w-full h-full object-contain" />
-            ) : isNative ? (
-              <div className="w-full p-6 flex flex-col items-center gap-3">
-                <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center">
-                  <Play className="w-7 h-7 text-accent" />
-                </div>
-                <audio ref={audioRef} src={ep.media_url!} controls className="w-full max-w-md" />
+          <div className="rounded-xl border border-border bg-secondary/30 p-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Export frame</p>
+                <p className="text-[11px] text-muted-foreground">Choose the crop that matches where this clip will be posted.</p>
               </div>
-            ) : ytId ? (
-              <iframe
-                key={`${ytId}-${active?.start_seconds}`}
-                className="w-full h-full"
-                src={`https://www.youtube.com/embed/${ytId}?start=${Math.floor(active?.start_seconds ?? 0)}&end=${Math.floor(active?.end_seconds ?? 0)}`}
-                allow="autoplay; encrypted-media"
-                title={active?.title ?? "preview"}
-              />
-            ) : (
-              <p className="text-xs text-muted-foreground p-6 text-center">No previewable source for this episode.</p>
-            )}
+              <div className="flex flex-wrap items-center gap-3">
+                <ToggleGroup
+                  type="single"
+                  value={exportSettings.aspectRatio}
+                  onValueChange={(value) => {
+                    if (!value) return;
+                    setExportSettings((prev) => ({ ...prev, aspectRatio: value as AspectPreset }));
+                  }}
+                  className="justify-start"
+                >
+                  {(["9:16", "1:1", "16:9"] as AspectPreset[]).map((preset) => (
+                    <ToggleGroupItem key={preset} value={preset} aria-label={preset} className="px-3 text-xs">
+                      {preset}
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Switch
+                    checked={exportSettings.safeArea}
+                    onCheckedChange={(checked) => setExportSettings((prev) => ({ ...prev, safeArea: checked }))}
+                  />
+                  Safe-area crop
+                </label>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-3 mb-2 text-[11px] text-muted-foreground">
+              <span>{EXPORT_PRESETS[exportSettings.aspectRatio].helper}</span>
+              <span>{exportSettings.safeArea ? "Center crop tightened for UI-safe framing" : "Full crop from source frame"}</span>
+            </div>
+
+            <div
+              className="relative mx-auto rounded-xl overflow-hidden bg-black border border-border flex items-center justify-center"
+              style={{ aspectRatio: getAspectCss(exportSettings.aspectRatio), maxHeight: "26rem" }}
+            >
+              {isNative && ep.media_kind === "video" ? (
+                <video ref={videoRef} src={ep.media_url!} controls className="w-full h-full object-contain" />
+              ) : isNative ? (
+                <div className="w-full p-6 flex flex-col items-center gap-3">
+                  <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center">
+                    <Play className="w-7 h-7 text-accent" />
+                  </div>
+                  <audio ref={audioRef} src={ep.media_url!} controls className="w-full max-w-md" />
+                </div>
+              ) : ytId ? (
+                <iframe
+                  key={`${ytId}-${active?.start_seconds}-${exportSettings.aspectRatio}`}
+                  className="w-full h-full"
+                  src={`https://www.youtube.com/embed/${ytId}?start=${Math.floor(active?.start_seconds ?? 0)}&end=${Math.floor(active?.end_seconds ?? 0)}`}
+                  allow="autoplay; encrypted-media"
+                  title={active?.title ?? "preview"}
+                />
+              ) : (
+                <p className="text-xs text-muted-foreground p-6 text-center">No previewable source for this episode.</p>
+              )}
+
+              {exportSettings.safeArea && ep.media_kind === "video" && (
+                <div className="pointer-events-none absolute border border-dashed border-accent/80 rounded-lg shadow-gold" style={{ inset: exportSettings.aspectRatio === "9:16" ? "8% 10%" : exportSettings.aspectRatio === "1:1" ? "10%" : "8% 6%" }}>
+                  <div className="absolute left-2 top-2 rounded bg-background/70 px-1.5 py-0.5 text-[10px] font-medium text-foreground">
+                    Safe area
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Timeline ribbon */}
@@ -760,10 +811,10 @@ function ClipEditor(props: {
                         ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Preparing…</>
                         : <><Download className="w-3.5 h-3.5 mr-1" /> Download</>}
                     </Button>
-                    {rendered[activeIdx] ? (
+                    {rendered[activeCacheKey] ? (
                       <ShareButtons
                         shareText={`${active.title} — ${active.hook}`}
-                        file={new File([rendered[activeIdx].blob], rendered[activeIdx].filename, { type: rendered[activeIdx].mime })}
+                        file={new File([rendered[activeCacheKey].blob], rendered[activeCacheKey].filename, { type: rendered[activeCacheKey].mime })}
                       />
                     ) : (
                       <Button size="sm" variant="outline" onClick={() => shareNative(active, activeIdx)} disabled={downloadingIndex === activeIdx}>
@@ -875,6 +926,7 @@ export default function AIClips() {
   const [saving, setSaving] = useState(false);
   const [downloadingIndex, setDownloadingIndex] = useState<number | null>(null);
   const [downloadError, setDownloadError] = useState<{ index: number; message: string } | null>(null);
+  const [exportSettings, setExportSettings] = useState<ExportSettings>({ aspectRatio: "9:16", safeArea: true });
   const ep = episodes.find((e) => e.id === selected);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -948,17 +1000,18 @@ export default function AIClips() {
   };
 
   // Cache rendered blobs per clip index so Share doesn't re-render
-  const [rendered, setRendered] = useState<Record<number, RenderedClip>>({});
+  const [rendered, setRendered] = useState<RenderedMap>({});
 
   const renderNative = async (c: Clip, index: number): Promise<RenderedClip | null> => {
     if (!ep || ep.hosting !== "native" || !ep.media_url) return null;
-    if (rendered[index]) return rendered[index];
+    const cacheKey = getClipCacheKey(c, index, exportSettings);
+    if (rendered[cacheKey]) return rendered[cacheKey];
     const kind = ep.media_kind === "video" ? "video" : "audio";
     setDownloadingIndex(index);
     setDownloadError(null);
     try {
-      const r = await trimNativeClip(ep.media_url, c, ep.title, kind);
-      setRendered((prev) => ({ ...prev, [index]: r }));
+      const r = await trimNativeClip(ep.media_url, c, ep.title, kind, exportSettings);
+      setRendered((prev) => ({ ...prev, [cacheKey]: r }));
       return r;
     } catch (e) {
       const msg = (e as Error)?.message || "Unknown error";
@@ -1118,6 +1171,8 @@ export default function AIClips() {
         <ClipEditor
           ep={ep!}
           ytId={ytId}
+          exportSettings={exportSettings}
+          setExportSettings={setExportSettings}
           maxDur={maxDur}
           draftClips={draftClips}
           previewIndex={previewIndex}
