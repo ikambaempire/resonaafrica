@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard,
   Mic2,
@@ -16,6 +17,7 @@ import {
   LogOut,
   Bookmark,
   Clock,
+  User as UserIcon,
 } from "lucide-react";
 
 const navItems = [
@@ -37,9 +39,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
+  const [username, setUsername] = useState<string | null>(null);
+
   useEffect(() => {
     mainRef.current?.scrollTo(0, 0);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("username").eq("id", user.id).maybeSingle()
+      .then(({ data }) => setUsername((data as any)?.username ?? null));
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -70,6 +80,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           {user && (
             <span className="text-xs text-muted-foreground hidden lg:block truncate max-w-[160px]">{user.email}</span>
           )}
+          <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+            <Link to={username ? `/u/${username}` : "/onboarding"} aria-label="View my profile">
+              <UserIcon className="w-4 h-4" />
+              <span className="ml-1.5 hidden sm:inline">{username ? "My profile" : "Set up profile"}</span>
+            </Link>
+          </Button>
           <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={handleSignOut}>
             <LogOut className="w-4 h-4" />
           </Button>
