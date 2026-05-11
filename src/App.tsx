@@ -11,6 +11,7 @@ import { AdminRoute } from "@/components/AdminRoute";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { OnboardingGate } from "./components/OnboardingGate";
+import { PaymentTestModeBanner } from "./components/PaymentTestModeBanner";
 
 // Landing eagerly loaded (LCP route); everything else split.
 import Landing from "./pages/Landing";
@@ -79,6 +80,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <ScrollToTop />
+            <PaymentTestModeBanner />
             <OnboardingGate />
             <Suspense fallback={<RouteFallback />}>
               <Routes>
