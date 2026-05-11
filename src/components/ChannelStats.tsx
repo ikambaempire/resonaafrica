@@ -25,12 +25,19 @@ export function ChannelStats({ podcastId, episodeCount }: { podcastId: string; e
 
       const { data: ytRows } = await supabase
         .from("episodes")
-        .select("youtube_views")
+        .select("id, title, youtube_views, youtube_views_synced_at")
         .eq("podcast_id", podcastId)
-        .not("youtube_video_id", "is", null);
-      const youtubeViews = (ytRows || []).reduce((acc: number, r: any) => acc + Number(r.youtube_views || 0), 0);
+        .not("youtube_video_id", "is", null)
+        .order("youtube_views", { ascending: false });
+      const ytList = (ytRows || []) as { id: string; title: string; youtube_views: number | null; youtube_views_synced_at: string | null }[];
+      const youtubeViews = ytList.reduce((acc, r) => acc + Number(r.youtube_views || 0), 0);
+      const lastSyncedAt = ytList
+        .map((r) => r.youtube_views_synced_at)
+        .filter(Boolean)
+        .sort()
+        .pop() || null;
 
-      return { totalPlays: Number(totalPlays), totalSeconds: Number(totalSeconds), youtubeViews, series };
+      return { totalPlays: Number(totalPlays), totalSeconds: Number(totalSeconds), youtubeViews, ytList, lastSyncedAt, series };
     },
   });
 
@@ -53,6 +60,9 @@ export function ChannelStats({ podcastId, episodeCount }: { podcastId: string; e
           <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center mb-3"><Youtube className="w-5 h-5 text-red-500" /></div>
           <p className="text-2xl font-display font-bold"><AnimatedCounter value={data.youtubeViews} /></p>
           <p className="text-xs text-muted-foreground mt-1">YouTube views</p>
+          {data.lastSyncedAt && (
+            <p className="text-[10px] text-muted-foreground mt-1">Synced {new Date(data.lastSyncedAt).toLocaleString()}</p>
+          )}
         </Card>
         <Card className="p-5 rounded-2xl">
           <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3"><Clock className="w-5 h-5 text-accent" /></div>
@@ -84,6 +94,28 @@ export function ChannelStats({ podcastId, episodeCount }: { podcastId: string; e
           </ResponsiveContainer>
         </ChartContainer>
       </Card>
+
+      {data.ytList.length > 0 && (
+        <Card className="p-6 rounded-2xl mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Youtube className="w-4 h-4 text-red-500" />
+              <h3 className="font-semibold text-sm">YouTube views breakdown</h3>
+            </div>
+            {data.lastSyncedAt && (
+              <span className="text-[11px] text-muted-foreground">Last synced {new Date(data.lastSyncedAt).toLocaleString()}</span>
+            )}
+          </div>
+          <ul className="divide-y divide-border/60">
+            {data.ytList.slice(0, 10).map((e) => (
+              <li key={e.id} className="flex items-center justify-between py-2 gap-3">
+                <span className="text-sm text-foreground truncate">{e.title}</span>
+                <span className="text-sm font-semibold tabular-nums shrink-0">{Number(e.youtube_views || 0).toLocaleString()}</span>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
     </section>
   );
 }
