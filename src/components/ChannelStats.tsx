@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
-import { Play, Clock, TrendingUp } from "lucide-react";
+import { Play, Clock, TrendingUp, Youtube } from "lucide-react";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
 
 export function ChannelStats({ podcastId, episodeCount }: { podcastId: string; episodeCount: number }) {
@@ -22,7 +22,15 @@ export function ChannelStats({ podcastId, episodeCount }: { podcastId: string; e
       }
       rows.forEach((r) => { if (r.day) map.set(r.day, (map.get(r.day) || 0) + Number(r.day_plays || 0)); });
       const series = Array.from(map.entries()).map(([d, plays]) => ({ date: d.slice(5), plays }));
-      return { totalPlays: Number(totalPlays), totalSeconds: Number(totalSeconds), series };
+
+      const { data: ytRows } = await supabase
+        .from("episodes")
+        .select("youtube_views")
+        .eq("podcast_id", podcastId)
+        .not("youtube_video_id", "is", null);
+      const youtubeViews = (ytRows || []).reduce((acc: number, r: any) => acc + Number(r.youtube_views || 0), 0);
+
+      return { totalPlays: Number(totalPlays), totalSeconds: Number(totalSeconds), youtubeViews, series };
     },
   });
 
@@ -35,11 +43,16 @@ export function ChannelStats({ podcastId, episodeCount }: { podcastId: string; e
         <h2 className="font-display font-bold text-2xl">Channel insights</h2>
         <span className="text-xs text-muted-foreground">Last 30 days</span>
       </div>
-      <div className="grid sm:grid-cols-3 gap-4 mb-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <Card className="p-5 rounded-2xl">
           <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3"><Play className="w-5 h-5 text-accent" /></div>
           <p className="text-2xl font-display font-bold"><AnimatedCounter value={data.totalPlays} /></p>
-          <p className="text-xs text-muted-foreground mt-1">Total views</p>
+          <p className="text-xs text-muted-foreground mt-1">Resona views</p>
+        </Card>
+        <Card className="p-5 rounded-2xl">
+          <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center mb-3"><Youtube className="w-5 h-5 text-red-500" /></div>
+          <p className="text-2xl font-display font-bold"><AnimatedCounter value={data.youtubeViews} /></p>
+          <p className="text-xs text-muted-foreground mt-1">YouTube views</p>
         </Card>
         <Card className="p-5 rounded-2xl">
           <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mb-3"><Clock className="w-5 h-5 text-accent" /></div>
