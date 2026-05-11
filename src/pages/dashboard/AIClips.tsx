@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Sparkles, Loader2, Wand2, Play, Clock, Scissors, FileText, Download, Save, Lightbulb, ExternalLink, AlertTriangle, RefreshCw, Share2, Copy, Link2, MessageCircle } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 
@@ -176,13 +177,19 @@ function triggerDownload(blob: Blob, filename: string) {
 /**
  * Audio fallback: cut the clip in real-time using a hidden media element + MediaRecorder.
  */
-async function trimWithMediaRecorder(mediaUrl: string, clip: Clip, baseName: string, kind: "video" | "audio"): Promise<RenderedClip> {
+async function trimWithMediaRecorder(
+  mediaUrl: string,
+  clip: Clip,
+  baseName: string,
+  kind: "video" | "audio",
+  onProgress?: (pct: number) => void
+): Promise<RenderedClip> {
   return new Promise<RenderedClip>((resolve, reject) => {
     const el = document.createElement(kind === "video" ? "video" : "audio") as HTMLMediaElement;
     el.crossOrigin = "anonymous";
     el.src = mediaUrl;
-    el.muted = kind === "video";
-    el.volume = 0;
+    el.muted = false;
+    el.volume = kind === "video" ? 0 : 1;
     (el as HTMLVideoElement).playsInline = true;
     el.preload = "auto";
 
@@ -207,13 +214,21 @@ async function trimWithMediaRecorder(mediaUrl: string, clip: Clip, baseName: str
           resolve({ blob, filename: `${safeName(baseName)}-${safeName(clip.title)}.${ext}`, mime });
         };
 
+        const actualDuration = Number.isFinite(el.duration) && el.duration > 0 ? el.duration : Number.POSITIVE_INFINITY;
+        const targetEnd = Math.min(clip.end_seconds, actualDuration);
+        const totalLen = Math.max(0.1, targetEnd - clip.start_seconds);
+        onProgress?.(0);
+
         await seekToTime(el, clip.start_seconds);
         await el.play();
         rec.start();
         const stopAt = () => {
-          if (el.currentTime >= clip.end_seconds) {
+          const elapsed = Math.max(0, el.currentTime - clip.start_seconds);
+          onProgress?.(Math.min(99, (elapsed / totalLen) * 100));
+          if (el.currentTime >= targetEnd) {
             el.removeEventListener("timeupdate", stopAt);
             rec.stop();
+            onProgress?.(100);
           }
         };
         el.addEventListener("timeupdate", stopAt);
@@ -229,14 +244,19 @@ async function recordVideoClip(
   mediaUrl: string,
   clip: Clip,
   baseName: string,
-  exportSettings: ExportSettings
+  exportSettings: ExportSettings,
+  onProgress?: (pct: number) => void
 ): Promise<RenderedClip> {
   const video = document.createElement("video");
   video.crossOrigin = "anonymous";
   video.src = mediaUrl;
   video.preload = "auto";
   video.playsInline = true;
-  video.muted = true;
+  // IMPORTANT: do NOT mute — createMediaElementSource will reroute audio
+  // to the AudioContext destination so it isn't audible, but a muted element
+  // produces a silent stream in Chromium.
+  video.muted = false;
+  video.volume = 1;
 
   let raf = 0;
   let recorder: MediaRecorder | null = null;
@@ -324,12 +344,22 @@ async function recordVideoClip(
       recorder!.start(250);
       await video.play();
 
+      // Clamp end against actual media duration to avoid recording past EOF.
+      const actualDuration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : Number.POSITIVE_INFINITY;
+      const targetEnd = Math.min(clip.end_seconds, actualDuration);
+      const totalLen = Math.max(0.1, targetEnd - clip.start_seconds);
+      onProgress?.(0);
+
       const stopAt = () => {
-        if (video.currentTime >= clip.end_seconds || video.ended) {
+        const elapsed = Math.max(0, video.currentTime - clip.start_seconds);
+        const pct = Math.min(99, (elapsed / totalLen) * 100);
+        onProgress?.(pct);
+        if (video.currentTime >= targetEnd || video.ended) {
           video.removeEventListener("timeupdate", stopAt);
           cancelAnimationFrame(raf);
           try { video.pause(); } catch { /* ignore */ }
           if (recorder?.state !== "inactive") recorder.stop();
+          onProgress?.(100);
         }
       };
 
@@ -379,15 +409,16 @@ async function trimNativeClip(
   clip: Clip,
   baseName: string,
   kind: "video" | "audio",
-  exportSettings: ExportSettings
+  exportSettings: ExportSettings,
+  onProgress?: (pct: number) => void
 ): Promise<RenderedClip> {
   if (!mediaUrl) throw new Error("Episode has no source media URL.");
 
   try {
     toast.loading("Recording selected range…", { id: "clip-dl" });
     const recorded = kind === "video"
-      ? await recordVideoClip(mediaUrl, clip, baseName, exportSettings)
-      : await trimWithMediaRecorder(mediaUrl, clip, baseName, kind);
+      ? await recordVideoClip(mediaUrl, clip, baseName, exportSettings, onProgress)
+      : await trimWithMediaRecorder(mediaUrl, clip, baseName, kind, onProgress);
 
     toast.loading("Optimizing clip for download…", { id: "clip-dl" });
 
@@ -546,6 +577,7 @@ function ClipEditor(props: {
   shareNative: (c: Clip, i: number) => Promise<RenderedClip | null>;
   rendered: RenderedMap;
   downloadingIndex: number | null;
+  downloadProgress: number;
   downloadError: DLError;
   setDownloadError: (e: DLError) => void;
   dirty: boolean;
@@ -558,7 +590,7 @@ function ClipEditor(props: {
   playClip: (i: number) => void;
 }) {
   const { ep, ytId, exportSettings, setExportSettings, maxDur, draftClips, previewIndex, setPreviewIndex, updateClip,
-    downloadClip, shareNative, rendered, downloadingIndex, downloadError, setDownloadError,
+    downloadClip, shareNative, rendered, downloadingIndex, downloadProgress, downloadError, setDownloadError,
     dirty, saving, saveAll, gotoStep, onExportSrt, videoRef, audioRef, playClip } = props;
 
   const isNative = ep.hosting === "native" && !!ep.media_url;
@@ -841,6 +873,16 @@ function ClipEditor(props: {
                 ) : null}
               </div>
 
+              {downloadingIndex === activeIdx && (
+                <div className="mt-2 space-y-1">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Recording clip… {Math.round(downloadProgress)}%</span>
+                    <span>{fmt(active.start_seconds + ((active.end_seconds - active.start_seconds) * downloadProgress) / 100)} / {fmt(active.end_seconds)}</span>
+                  </div>
+                  <Progress value={downloadProgress} className="h-2" />
+                </div>
+              )}
+
               {downloadError?.index === activeIdx && (
                 <Alert variant="destructive" className="mt-1">
                   <AlertTriangle className="w-4 h-4" />
@@ -945,7 +987,52 @@ export default function AIClips() {
     setStep(persistedClips.length > 0 ? 3 : 1);
   }, [selected, persistedClips]);
 
-  const maxDur = Math.max(60, Number(ep?.duration_seconds) || 1800);
+  // Detect actual media duration from the source file (more accurate than stored value)
+  const [detectedDuration, setDetectedDuration] = useState<number | null>(null);
+  useEffect(() => {
+    setDetectedDuration(null);
+    if (!ep || ep.hosting !== "native" || !ep.media_url) return;
+    const probe = document.createElement(ep.media_kind === "video" ? "video" : "audio") as HTMLMediaElement;
+    probe.preload = "metadata";
+    probe.crossOrigin = "anonymous";
+    probe.src = ep.media_url;
+    const onLoaded = () => {
+      const d = probe.duration;
+      if (Number.isFinite(d) && d > 0) {
+        setDetectedDuration(d);
+        // Persist real duration if missing or off by >2s
+        const stored = Number(ep.duration_seconds) || 0;
+        if (Math.abs(stored - d) > 2) {
+          supabase.from("episodes").update({ duration_seconds: Math.round(d) }).eq("id", ep.id).then(() => {});
+        }
+      }
+      cleanup();
+    };
+    const cleanup = () => { probe.removeEventListener("loadedmetadata", onLoaded); probe.src = ""; probe.remove(); };
+    probe.addEventListener("loadedmetadata", onLoaded);
+    probe.addEventListener("error", cleanup);
+    return cleanup;
+  }, [ep?.id, ep?.media_url, ep?.hosting, ep?.media_kind, ep?.duration_seconds]);
+
+  const maxDur = Math.max(
+    10,
+    detectedDuration ?? (Number(ep?.duration_seconds) > 0 ? Number(ep!.duration_seconds) : 1800)
+  );
+
+  // Clamp draft clips to actual duration once detected
+  useEffect(() => {
+    if (!detectedDuration) return;
+    setDraftClips((prev) => {
+      const clamped = prev.map((c) => ({
+        ...c,
+        start_seconds: Math.max(0, Math.min(detectedDuration - 1, c.start_seconds)),
+        end_seconds: Math.max(0, Math.min(detectedDuration, c.end_seconds)),
+      })).filter((c) => c.end_seconds > c.start_seconds);
+      return clamped.length === prev.length && clamped.every((c, i) => c.start_seconds === prev[i].start_seconds && c.end_seconds === prev[i].end_seconds)
+        ? prev
+        : clamped;
+    });
+  }, [detectedDuration]);
 
   const generate = async () => {
     if (!selected) { toast.error("Choose an episode"); return; }
@@ -1003,16 +1090,24 @@ export default function AIClips() {
 
   // Cache rendered blobs per clip index so Share doesn't re-render
   const [rendered, setRendered] = useState<RenderedMap>({});
+  const [downloadProgress, setDownloadProgress] = useState(0);
 
   const renderNative = async (c: Clip, index: number): Promise<RenderedClip | null> => {
     if (!ep || ep.hosting !== "native" || !ep.media_url) return null;
     const cacheKey = getClipCacheKey(c, index, exportSettings);
     if (rendered[cacheKey]) return rendered[cacheKey];
     const kind = ep.media_kind === "video" ? "video" : "audio";
+    // Clamp to actual duration before rendering
+    const safeClip: Clip = {
+      ...c,
+      start_seconds: Math.max(0, Math.min(maxDur - 1, c.start_seconds)),
+      end_seconds: Math.max(c.start_seconds + 1, Math.min(maxDur, c.end_seconds)),
+    };
     setDownloadingIndex(index);
+    setDownloadProgress(0);
     setDownloadError(null);
     try {
-      const r = await trimNativeClip(ep.media_url, c, ep.title, kind, exportSettings);
+      const r = await trimNativeClip(ep.media_url, safeClip, ep.title, kind, exportSettings, (pct) => setDownloadProgress(pct));
       setRendered((prev) => ({ ...prev, [cacheKey]: r }));
       return r;
     } catch (e) {
@@ -1023,6 +1118,7 @@ export default function AIClips() {
       return null;
     } finally {
       setDownloadingIndex(null);
+      setDownloadProgress(0);
     }
   };
 
@@ -1184,6 +1280,7 @@ export default function AIClips() {
           shareNative={shareNative}
           rendered={rendered}
           downloadingIndex={downloadingIndex}
+          downloadProgress={downloadProgress}
           downloadError={downloadError}
           setDownloadError={setDownloadError}
           dirty={dirty}
