@@ -229,14 +229,19 @@ async function recordVideoClip(
   mediaUrl: string,
   clip: Clip,
   baseName: string,
-  exportSettings: ExportSettings
+  exportSettings: ExportSettings,
+  onProgress?: (pct: number) => void
 ): Promise<RenderedClip> {
   const video = document.createElement("video");
   video.crossOrigin = "anonymous";
   video.src = mediaUrl;
   video.preload = "auto";
   video.playsInline = true;
-  video.muted = true;
+  // IMPORTANT: do NOT mute — createMediaElementSource will reroute audio
+  // to the AudioContext destination so it isn't audible, but a muted element
+  // produces a silent stream in Chromium.
+  video.muted = false;
+  video.volume = 1;
 
   let raf = 0;
   let recorder: MediaRecorder | null = null;
