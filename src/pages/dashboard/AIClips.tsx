@@ -54,14 +54,21 @@ async function getFFmpeg(onLog?: (msg: string) => void): Promise<FFmpeg> {
   return ff;
 }
 
+type RenderedClip = { blob: Blob; filename: string; mime: string };
+
+function triggerDownload(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 /**
  * Fallback: cut the clip in real-time using a hidden <video> + MediaRecorder.
- * This works even when ffmpeg.wasm fetch fails, because <video> can play cross-origin
- * media without needing a CORS-readable response (we only read the captured stream,
- * which Supabase public buckets DO allow with crossOrigin="anonymous").
  */
-async function trimWithMediaRecorder(mediaUrl: string, clip: Clip, baseName: string, kind: "video" | "audio") {
-  return new Promise<void>((resolve, reject) => {
+async function trimWithMediaRecorder(mediaUrl: string, clip: Clip, baseName: string, kind: "video" | "audio"): Promise<RenderedClip> {
+  return new Promise<RenderedClip>((resolve, reject) => {
     const el = document.createElement(kind === "video" ? "video" : "audio") as HTMLMediaElement;
     el.crossOrigin = "anonymous";
     el.src = mediaUrl;
@@ -70,7 +77,6 @@ async function trimWithMediaRecorder(mediaUrl: string, clip: Clip, baseName: str
     el.preload = "auto";
 
     const cleanup = () => { try { el.pause(); el.src = ""; el.remove(); } catch { /* */ } };
-
     const onError = () => { cleanup(); reject(new Error("Browser couldn't load the source media for recording.")); };
     el.addEventListener("error", onError);
 
@@ -87,14 +93,8 @@ async function trimWithMediaRecorder(mediaUrl: string, clip: Clip, baseName: str
         rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
         rec.onstop = () => {
           const blob = new Blob(chunks, { type: mime });
-          const ext = kind === "video" ? "webm" : "webm";
-          const a = document.createElement("a");
-          a.href = URL.createObjectURL(blob);
-          a.download = `${safeName(baseName)}-${safeName(clip.title)}.${ext}`;
-          document.body.appendChild(a); a.click(); a.remove();
-          URL.revokeObjectURL(a.href);
           cleanup();
-          resolve();
+          resolve({ blob, filename: `${safeName(baseName)}-${safeName(clip.title)}.webm`, mime });
         };
 
         el.currentTime = clip.start_seconds;
@@ -114,18 +114,16 @@ async function trimWithMediaRecorder(mediaUrl: string, clip: Clip, baseName: str
 
 /**
  * Precisely trim a native (CORS-accessible) media URL into a real MP4 / M4A clip.
- * Uses ffmpeg.wasm — produces a true cut file (no real-time recording).
- * Falls back to MediaRecorder (.webm) if FFmpeg can't fetch the source.
+ * Returns the rendered Blob — caller decides to download or share.
  */
 async function trimNativeClip(
   mediaUrl: string,
   clip: Clip,
   baseName: string,
   kind: "video" | "audio"
-) {
+): Promise<RenderedClip> {
   if (!mediaUrl) throw new Error("Episode has no source media URL.");
 
-  // Try FFmpeg path first.
   try {
     toast.loading("Loading FFmpeg engine…", { id: "clip-dl" });
     const ff = await getFFmpeg();
@@ -149,10 +147,10 @@ async function trimNativeClip(
     const start = Math.max(0, clip.start_seconds);
     const dur = Math.max(0.1, clip.end_seconds - clip.start_seconds);
 
-    toast.loading("Cutting clip with FFmpeg…", { id: "clip-dl" });
+    toast.loading("Cutting clip…", { id: "clip-dl" });
     const args = kind === "video"
       ? ["-ss", String(start), "-i", inName, "-t", String(dur),
-         "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+         "-c:v", "libx264", "-preset", "ultrafast", "-crf", "26",
          "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", outName]
       : ["-ss", String(start), "-i", inName, "-t", String(dur),
          "-c:a", "aac", "-b:a", "192k", outName];
@@ -161,35 +159,85 @@ async function trimNativeClip(
     const data = await ff.readFile(outName);
     const u8 = data as Uint8Array;
     const buf = u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) as ArrayBuffer;
-    const blob = new Blob([buf], { type: kind === "video" ? "video/mp4" : "audio/mp4" });
+    const mime = kind === "video" ? "video/mp4" : "audio/mp4";
+    const blob = new Blob([buf], { type: mime });
     if (blob.size === 0) throw new Error("FFmpeg produced an empty file. Try a different time range.");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${safeName(baseName)}-${safeName(clip.title)}.${outExt}`;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(a.href);
 
     try { await ff.deleteFile(inName); await ff.deleteFile(outName); } catch { /* ignore */ }
 
-    toast.success(`Clip downloaded as .${outExt}`, { id: "clip-dl" });
-    return;
+    toast.success("Clip ready", { id: "clip-dl" });
+    return { blob, filename: `${safeName(baseName)}-${safeName(clip.title)}.${outExt}`, mime };
   } catch (e) {
     const msg = (e as Error)?.message || "";
-    console.warn("[AIClips] FFmpeg path failed, attempting MediaRecorder fallback:", msg);
     if (msg.startsWith("FETCH_FAILED")) {
-      // Try MediaRecorder fallback — works even when fetch is blocked.
       try {
-        toast.loading(`Recording clip in real-time (${Math.ceil(clip.end_seconds - clip.start_seconds)}s)…`, { id: "clip-dl" });
-        await trimWithMediaRecorder(mediaUrl, clip, baseName, kind);
-        toast.success("Clip downloaded as .webm (real-time capture)", { id: "clip-dl" });
-        return;
+        toast.loading(`Recording in real-time (${Math.ceil(clip.end_seconds - clip.start_seconds)}s)…`, { id: "clip-dl" });
+        const r = await trimWithMediaRecorder(mediaUrl, clip, baseName, kind);
+        toast.success("Clip ready (recorded)", { id: "clip-dl" });
+        return r;
       } catch (recErr) {
-        console.error("[AIClips] MediaRecorder fallback failed:", recErr);
         throw new Error((recErr as Error)?.message || "Both FFmpeg and recorder fallback failed.");
       }
     }
     throw e instanceof Error ? e : new Error(String(e));
   }
+}
+
+function ShareButtons({ shareText, shareUrl, file }: { shareText: string; shareUrl?: string; file?: File }) {
+  const canNativeShare = typeof navigator !== "undefined" && !!(navigator as Navigator & { share?: unknown }).share;
+  const canShareFile = canNativeShare && file && (navigator as Navigator & { canShare?: (d: ShareData) => boolean }).canShare?.({ files: [file] });
+  const wa = `https://wa.me/?text=${encodeURIComponent(shareText + (shareUrl ? ` ${shareUrl}` : ""))}`;
+  const tw = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}${shareUrl ? `&url=${encodeURIComponent(shareUrl)}` : ""}`;
+
+  const nativeShare = async () => {
+    try {
+      const data: ShareData = { title: shareText, text: shareText };
+      if (shareUrl) data.url = shareUrl;
+      if (canShareFile && file) data.files = [file];
+      await (navigator as Navigator & { share: (d: ShareData) => Promise<void> }).share(data);
+    } catch { /* user cancelled */ }
+  };
+
+  const copyLink = async () => {
+    if (!shareUrl) return;
+    await navigator.clipboard.writeText(shareUrl);
+    toast.success("Link copied");
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button size="sm" variant="outline">
+          <Share2 className="w-3.5 h-3.5 mr-1" /> Share
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="text-xs">Share this clip</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {canNativeShare && (
+          <DropdownMenuItem onClick={nativeShare}>
+            <Share2 className="w-4 h-4 mr-2" /> {canShareFile ? "Share file…" : "Share via device…"}
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem asChild>
+          <a href={wa} target="_blank" rel="noreferrer"><MessageCircle className="w-4 h-4 mr-2" /> WhatsApp</a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href={tw} target="_blank" rel="noreferrer"><Twitter className="w-4 h-4 mr-2" /> X / Twitter</a>
+        </DropdownMenuItem>
+        {shareUrl && (
+          <DropdownMenuItem onClick={copyLink}>
+            <Copy className="w-4 h-4 mr-2" /> Copy link
+          </DropdownMenuItem>
+        )}
+        {!shareUrl && file && (
+          <div className="px-2 py-1.5 text-[11px] text-muted-foreground border-t mt-1">
+            For TikTok / Instagram: download the file, then upload it from the app.
+          </div>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 function downloadSrt(clips: Clip[], episodeTitle: string) {
