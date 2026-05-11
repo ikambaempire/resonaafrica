@@ -590,7 +590,7 @@ function ClipEditor(props: {
   playClip: (i: number) => void;
 }) {
   const { ep, ytId, exportSettings, setExportSettings, maxDur, draftClips, previewIndex, setPreviewIndex, updateClip,
-    downloadClip, shareNative, rendered, downloadingIndex, downloadError, setDownloadError,
+    downloadClip, shareNative, rendered, downloadingIndex, downloadProgress, downloadError, setDownloadError,
     dirty, saving, saveAll, gotoStep, onExportSrt, videoRef, audioRef, playClip } = props;
 
   const isNative = ep.hosting === "native" && !!ep.media_url;
