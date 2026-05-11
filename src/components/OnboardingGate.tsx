@@ -3,7 +3,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
-const EXEMPT_PREFIXES = ["/onboarding", "/auth", "/u/"];
+const EXEMPT_PREFIXES = ["/onboarding", "/auth"];
+// Surfaces that REQUIRE a completed profile
+const GATED_PREFIXES = ["/dashboard"];
 
 /** Redirects logged-in users to /onboarding if their profile setup is incomplete. */
 export function OnboardingGate() {
@@ -14,8 +16,11 @@ export function OnboardingGate() {
 
   useEffect(() => {
     if (loading || !user) return;
-    if (checked === user.id) return;
     if (EXEMPT_PREFIXES.some((p) => pathname.startsWith(p))) return;
+
+    // Soft gate: only enforce wizard on dashboard surfaces
+    const mustGate = GATED_PREFIXES.some((p) => pathname.startsWith(p));
+    if (!mustGate && checked === user.id) return;
 
     (async () => {
       // Skip for admins so they aren't forced through the wizard
@@ -32,8 +37,9 @@ export function OnboardingGate() {
         .eq("id", user.id)
         .maybeSingle();
       setChecked(user.id);
-      // Only redirect if profile row exists AND user hasn't picked a handle yet
-      if (data && !(data as any).username && (data as any).is_setup_complete === false) {
+
+      const incomplete = !data || !(data as any).username;
+      if (incomplete && mustGate) {
         navigate("/onboarding", { replace: true });
       }
     })();

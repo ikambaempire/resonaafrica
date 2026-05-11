@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { VideoPlayer, EmbedPlayer } from "@/components/MediaPlayers";
 import { ChannelStats } from "@/components/ChannelStats";
+import { PublisherCard } from "@/components/PublisherCard";
 import { Mic2, Loader2, Bookmark, Clock, Heart, BadgeCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -76,7 +77,8 @@ export default function ChannelPage() {
         </section>
 
         {active && (
-          <section className="px-6 lg:px-8 -mt-6 max-w-6xl mx-auto">
+          <section className="px-6 lg:px-8 -mt-6 max-w-6xl mx-auto space-y-4">
+            <PublisherCard ownerId={podcast.owner_id} />
             {active.hosting === "embed" && active.embed_url ? (
               <EmbedPlayer provider={active.embed_provider} url={active.embed_url} title={active.title} />
             ) : active.media_url && active.media_kind === "video" ? (

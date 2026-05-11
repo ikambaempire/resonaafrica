@@ -4,6 +4,7 @@ import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { Loader2, Play, Clock, TrendingUp } from "lucide-react";
+import { YouTubeLiveStats } from "@/components/YouTubeLiveStats";
 
 export default function Analytics() {
   const { data, isLoading } = useCreatorAnalytics();
@@ -52,6 +53,8 @@ export default function Analytics() {
           </ResponsiveContainer>
         </ChartContainer>
       </Card>
+
+      <YouTubeLiveStats />
 
       <Card className="p-6 rounded-2xl">
         <h2 className="font-display font-bold text-xl mb-4">Top episodes</h2>
