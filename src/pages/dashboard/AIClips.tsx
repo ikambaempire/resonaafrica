@@ -35,15 +35,6 @@ function getYouTubeId(url: string): string | null {
   const m = url.match(/(?:youtube\.com\/(?:.*v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
   return m ? m[1] : null;
 }
-              {downloadingIndex === activeIdx && (
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                    <span>Recording clip… {Math.round(downloadProgress)}%</span>
-                    <span>{fmt(active.start_seconds + ((active.end_seconds - active.start_seconds) * downloadProgress) / 100)} / {fmt(active.end_seconds)}</span>
-                  </div>
-                  <Progress value={downloadProgress} className="h-2" />
-                </div>
-              )}
 
 
 function safeName(s: string) {
