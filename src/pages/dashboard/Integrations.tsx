@@ -72,7 +72,9 @@ const guides = [
 
 export default function Integrations() {
   const rssUrl = `${window.location.origin}/c/YOUR-SLUG/rss.xml`;
-  const { data: podcasts = [] } = useMyPodcasts();
+  const { data: podcasts = [], refetch: refetchPodcasts } = useMyPodcasts();
+  const createPodcast = useCreatePodcast();
+  const { user } = useAuth();
 
   const [channelInput, setChannelInput] = useState("");
   const [podcastId, setPodcastId] = useState<string>("");
