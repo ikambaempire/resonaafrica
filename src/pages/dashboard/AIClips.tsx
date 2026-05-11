@@ -340,34 +340,45 @@ export default function AIClips() {
     toast.success("Clip edits saved");
   };
 
+  // Cache rendered blobs per clip index so Share doesn't re-render
+  const [rendered, setRendered] = useState<Record<number, RenderedClip>>({});
+
+  const renderNative = async (c: Clip, index: number): Promise<RenderedClip | null> => {
+    if (!ep || ep.hosting !== "native" || !ep.media_url) return null;
+    if (rendered[index]) return rendered[index];
+    const kind = ep.media_kind === "video" ? "video" : "audio";
+    setDownloadingIndex(index);
+    setDownloadError(null);
+    try {
+      const r = await trimNativeClip(ep.media_url, c, ep.title, kind);
+      setRendered((prev) => ({ ...prev, [index]: r }));
+      return r;
+    } catch (e) {
+      const msg = (e as Error)?.message || "Unknown error";
+      console.error("[AIClips] render failed:", e);
+      setDownloadError({ index, message: msg });
+      toast.error("Couldn't prepare this clip — see details below.", { id: "clip-dl", duration: 5000 });
+      return null;
+    } finally {
+      setDownloadingIndex(null);
+    }
+  };
+
   const downloadClip = async (c: Clip, index: number) => {
     if (!ep) return;
-    setDownloadError(null);
     if (ep.hosting === "native" && ep.media_url) {
-      const kind = ep.media_kind === "video" ? "video" : "audio";
-      setDownloadingIndex(index);
-      try {
-        await trimNativeClip(ep.media_url, c, ep.title, kind);
-      } catch (e) {
-        const msg = (e as Error)?.message || "Unknown error";
-        console.error("[AIClips] download failed:", e);
-        setDownloadError({ index, message: msg });
-        toast.error("Download failed — see details below the clip.", { id: "clip-dl", duration: 5000 });
-      } finally {
-        setDownloadingIndex(null);
-      }
+      const r = await renderNative(c, index);
+      if (r) triggerDownload(r.blob, r.filename);
     } else {
-      // Embed (YouTube/Spotify): browsers + platform terms block direct cross-origin downloads.
       const ytId = ep.embed_provider === "youtube" && ep.embed_url ? getYouTubeId(ep.embed_url) : null;
-      const link = ytId
-        ? `https://www.youtube.com/watch?v=${ytId}&t=${Math.floor(c.start_seconds)}s`
-        : ep.embed_url ?? "";
-      setDownloadError({
-        index,
-        message: `This episode is hosted on ${ep.embed_provider ?? "an external platform"}. Direct video downloads aren't possible for embeds. Re-upload the source file under Content → Upload from device to enable MP4 export.`,
-      });
+      const link = ytId ? `https://youtu.be/${ytId}?t=${Math.floor(c.start_seconds)}` : ep.embed_url ?? "";
       if (link) window.open(link, "_blank");
     }
+  };
+
+  const shareNative = async (c: Clip, index: number) => {
+    const r = await renderNative(c, index);
+    return r;
   };
 
   const ytId = ep?.hosting === "embed" && ep?.embed_provider === "youtube" && ep.embed_url ? getYouTubeId(ep.embed_url) : null;
