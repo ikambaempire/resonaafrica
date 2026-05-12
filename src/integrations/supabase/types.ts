@@ -378,6 +378,62 @@ export type Database = {
           },
         ]
       }
+      newsletter_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          unsubscribe_token: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          unsubscribe_token?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          unsubscribe_token?: string
+        }
+        Relationships: []
+      }
+      podcast_subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          podcast_id: string
+          unsubscribe_token: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          podcast_id: string
+          unsubscribe_token?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          podcast_id?: string
+          unsubscribe_token?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "podcast_subscribers_podcast_id_fkey"
+            columns: ["podcast_id"]
+            isOneToOne: false
+            referencedRelation: "podcasts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       podcasts: {
         Row: {
           category: string | null
@@ -583,6 +639,175 @@ export type Database = {
         }
         Relationships: []
       }
+      studio_availability: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          start_time: string
+          studio_id: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          start_time: string
+          studio_id: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          start_time?: string
+          studio_id?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_availability_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studio_bookings: {
+        Row: {
+          booker_email: string
+          booker_name: string
+          booker_user_id: string | null
+          created_at: string
+          currency: string
+          end_at: string
+          environment: string
+          hours: number
+          id: string
+          notes: string | null
+          owner_id: string
+          paddle_transaction_id: string | null
+          platform_fee_cents: number
+          start_at: string
+          status: string
+          studio_id: string
+          total_cents: number
+          updated_at: string
+        }
+        Insert: {
+          booker_email: string
+          booker_name: string
+          booker_user_id?: string | null
+          created_at?: string
+          currency?: string
+          end_at: string
+          environment?: string
+          hours: number
+          id?: string
+          notes?: string | null
+          owner_id: string
+          paddle_transaction_id?: string | null
+          platform_fee_cents?: number
+          start_at: string
+          status?: string
+          studio_id: string
+          total_cents: number
+          updated_at?: string
+        }
+        Update: {
+          booker_email?: string
+          booker_name?: string
+          booker_user_id?: string | null
+          created_at?: string
+          currency?: string
+          end_at?: string
+          environment?: string
+          hours?: number
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          paddle_transaction_id?: string | null
+          platform_fee_cents?: number
+          start_at?: string
+          status?: string
+          studio_id?: string
+          total_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "studio_bookings_studio_id_fkey"
+            columns: ["studio_id"]
+            isOneToOne: false
+            referencedRelation: "studios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      studios: {
+        Row: {
+          amenities: string[]
+          capacity: number
+          city: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          country: string | null
+          cover_url: string | null
+          created_at: string
+          currency: string
+          description: string | null
+          hourly_rate_cents: number
+          id: string
+          is_published: boolean
+          name: string
+          owner_id: string
+          photos: string[]
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          amenities?: string[]
+          capacity?: number
+          city?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          cover_url?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          hourly_rate_cents?: number
+          id?: string
+          is_published?: boolean
+          name: string
+          owner_id: string
+          photos?: string[]
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          amenities?: string[]
+          capacity?: number
+          city?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          cover_url?: string | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          hourly_rate_cents?: number
+          id?: string
+          is_published?: boolean
+          name?: string
+          owner_id?: string
+          photos?: string[]
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tips: {
         Row: {
           amount_cents: number
@@ -759,7 +984,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "editor" | "viewer" | "creator"
+      app_role: "admin" | "editor" | "viewer" | "creator" | "studio_owner"
       email_template_type: "confirmation" | "reminder" | "followup"
       embed_provider: "youtube" | "spotify" | "apple" | "soundcloud" | "other"
       episode_status: "draft" | "scheduled" | "published"
@@ -891,7 +1116,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "editor", "viewer", "creator"],
+      app_role: ["admin", "editor", "viewer", "creator", "studio_owner"],
       email_template_type: ["confirmation", "reminder", "followup"],
       embed_provider: ["youtube", "spotify", "apple", "soundcloud", "other"],
       episode_status: ["draft", "scheduled", "published"],
