@@ -1,48 +1,95 @@
-## What I'll build
+# Build plan — Discover redesign, email subscriptions, studio bookings
 
-### 1. Monetization — Tips + Premium subscriptions (Paddle)
-The eligibility check **recommends Paddle**, but with a heads-up: podcast platforms with creator monetisation can require **extra review by Paddle before going live**. Test mode works immediately; live payouts depend on approval.
+## 1. YouTube-style Discover + Watch page
 
-If you confirm, I'll:
-- Enable Lovable's built-in **Paddle** payments (test environment auto-provisioned).
-- Create two product templates: **Tip** (custom amount, one-time) and **Premium subscription** (monthly per podcast).
-- Add a `Tip` button on every channel/episode page with $3 / $5 / $10 + custom.
-- Add a `Subscribe to premium` button on channel pages → Paddle checkout.
-- Webhook handler writes to existing `tips` and `premium_subscriptions` tables, then unlocks `is_premium` episodes via existing `has_active_premium()` RLS.
-- Show earnings on the **Monetization** dashboard page (today it's a placeholder).
+**Discover page (`/discover`)**
+- Sticky horizontal chip bar at the top: "All" + every category from `categories` (scrollable).
+- Default view (no chip selected): three rails — "Trending now" (top podcasts by plays), "New episodes" (latest published episodes), "Recommended" (rest).
+- Selecting a chip switches to a single responsive grid for that category.
+- Cards show: thumbnail (16:9 with duration badge), title, podcast/channel name, plays + age. Hover reveals a subtle gradient + play icon.
+- Click on an episode card → new `/watch/:episodeId` page.
 
-> Confirm and I'll call `enable_paddle_payments`. If you'd rather use Stripe (more complex tax setup, no extra review), say so.
+**Watch page (`/watch/:episodeId`)**
+- Main player on the left (existing `AudioPlayer` for audio, YouTube embed for video episodes).
+- Title, channel row (avatar + name + subscribe-by-email button + tip button + premium button).
+- Description / show notes panel (expandable).
+- Right column: "Up next" rail = other episodes from the same podcast, then trending across platform.
+- Records a play in `episode_plays` on load.
 
-### 2. Live YouTube channel analytics (per creator)
-Lovable Cloud's managed Google sign-in doesn't include the YouTube Analytics scope, so per-creator **private** analytics would need a separate OAuth app. The fastest, no-extra-setup path is **public live stats** from each creator's own channel via the existing `YOUTUBE_API_KEY`:
+## 2. Email subscriptions for new episodes
 
-- New section on **Dashboard → Analytics** called "YouTube live".
-- Creator pastes/saves their YouTube channel URL or `@handle` (stored on `profiles.social_links` or a new `youtube_channel_id` column on profiles).
-- Edge function `youtube-channel-stats` returns subscribers, total views, video count, and the latest 5 videos with views/likes/comments — refreshed live on page open.
-- If you later want **watch-time / retention** (private metrics), I'll wire up a dedicated YouTube OAuth flow.
+**Per-podcast subscribe**
+- New `podcast_subscribers` table: `id, podcast_id, email, user_id?, created_at, unsubscribe_token`.
+- "Subscribe" button on each channel page + watch page → small dialog asking for email (pre-filled if logged in).
+- Confirmation email sent immediately ("You're subscribed to <podcast>").
 
-### 3. Nav + profile changes
-- **Remove** the "Dashboard" button from the top nav (both `PublicNav` and `DashboardLayout`). Keep just the profile avatar/icon.
-- Profile avatar dropdown → "My profile", "Sign out".
-- On the user's own `ProfilePage`, add a **"Open dashboard"** button right under "Edit profile".
+**Global newsletter**
+- New `newsletter_subscribers` table: `id, email, created_at, unsubscribe_token`.
+- Inline form in the footer.
 
-### 4. Publisher card on listening surfaces
-- On `ChannelPage` and the episode player, add a small **publisher card** (avatar + name + follow button + link to `/u/{username}`) so listeners can jump to the creator's profile.
+**Auto-send when a new episode publishes**
+- DB trigger on `episodes` (when `status` flips to `published`) calls a new edge function `notify-new-episode` via pg_net, which:
+  - Fans out to every `podcast_subscribers.email` for that podcast (queued through Lovable Email infra → one email per recipient via `send-transactional-email`).
+  - Adds a row to a `newsletter_digest_queue` so a weekly digest job can email global subscribers.
+- Two new transactional templates: `new-episode-notification`, `subscription-confirmation`. (Weekly digest can be added later.)
 
-### 5. Force profile-setup wizard after email/password signup (soft gate)
-- Update `OnboardingGate`: any logged-in user without `username` is redirected to `/onboarding` whenever they hit `/dashboard/*` or `/u/*` for themselves. Public pages stay open.
-- After signup in `Auth.tsx`, push directly to `/onboarding` instead of `/dashboard/overview`.
-- Wizard already exists; I'll just make sure it requires username + display name + 1 category before marking `is_setup_complete = true`.
+**Prereq:** Lovable Cloud email domain must be set up — I'll prompt that first if not already done, then auto-continue.
 
-## Technical notes
-- DB: add `profiles.youtube_channel_id text` (nullable). No other schema changes; `tips` and `premium_subscriptions` already exist.
-- Edge functions: `youtube-channel-stats` (new), `paddle-webhook` (new, added by enable tool), `create-tip-checkout` and `create-subscription-checkout` (new).
-- All Paddle product IDs stored in a tiny `monetization_products` table keyed by `podcast_id`.
-- Files touched: `PublicNav`, `DashboardLayout`, `ProfilePage`, `Auth`, `OnboardingGate`, `ChannelPage`, `Monetization`, `Analytics`, plus new `PublisherCard`, `TipDialog`, `SubscribeButton`, `YouTubeLiveStats` components.
+## 3. Studio owners + booking system
 
-## Order of operations
-1. Confirm Paddle (or Stripe) and I'll enable it now.
-2. While you're confirming, I'll ship items **3, 4, 5** + the YouTube live panel (no payment dependency).
-3. Once payments is enabled, I'll wire up the tip/subscribe buttons and webhook.
+**Role + onboarding**
+- Add `studio_owner` to `app_role` enum.
+- Onboarding step 1 asks: "I'm a Podcaster" / "I'm a Studio Owner" → assigns role + routes to the right dashboard.
+- Public CTA "List your studio" on Ecosystem page → `/studios/signup` (auth + auto-assign `studio_owner`).
 
-**Reply "go Paddle" to proceed, or pick another provider.**
+**Tables**
+- `studios`: owner_id, name, slug, city, country, description, hourly_rate_cents, currency, photos[], amenities[], capacity, is_published, paddle_price_id (auto-created at $X/hr).
+- `studio_availability`: studio_id, weekday, start_time, end_time (recurring weekly windows).
+- `studio_bookings`: id, studio_id, owner_id, booker_user_id, booker_email, booker_name, start_at, end_at, hours, total_cents, platform_fee_cents (20%), status (`pending_payment` | `confirmed` | `cancelled` | `completed`), paddle_transaction_id, notes, created_at.
+
+**Studio Owner dashboard (`/studio`)**
+- New `StudioOwnerLayout` (sidebar): Overview, My Studios (CRUD), Bookings (list + approve/decline), Earnings, Settings.
+- `useIsStudioOwner` hook + `StudioOwnerRoute` guard.
+
+**Public studio listing**
+- New `/studios` page: searchable grid of published studios.
+- `/studios/:slug` page: photos, description, rate, "Book this studio" → date/time/duration picker → Paddle checkout (price computed = hours × rate). Webhook (`payments-webhook`) records `studio_booking` with 20% fee on `TransactionCompleted`.
+
+**Admin**
+- New `/admin/studios` page: list every studio + every booking, filter by date/studio/status.
+- Add "Studios" + "Bookings" links to AdminLayout sidebar.
+
+**Notifications**
+- Booking confirmation email to booker + owner via `send-transactional-email`.
+
+---
+
+## File map (high level)
+
+**New tables / migration**
+- `supabase/migrations/<ts>_youtube_discover_subs_studios.sql` — adds enum value, all new tables, RLS, trigger for new-episode notifications.
+
+**Edge functions**
+- `supabase/functions/notify-new-episode/index.ts` (fans out subscriber emails)
+- Updates to `supabase/functions/payments-webhook/index.ts` (handle `kind: "studio_booking"` in customData)
+- New transactional templates under `_shared/transactional-email-templates/`
+
+**Frontend**
+- `src/pages/Discover.tsx` (rewrite — YouTube layout)
+- `src/pages/Watch.tsx` (new)
+- `src/components/discover/CategoryChips.tsx`, `EpisodeCard.tsx`, `UpNextRail.tsx`
+- `src/components/SubscribeByEmailButton.tsx`
+- `src/components/NewsletterSignup.tsx` (in Footer)
+- `src/pages/Studios.tsx`, `src/pages/StudioDetail.tsx`, `src/pages/StudioSignup.tsx`
+- `src/pages/studio/*` (Overview, MyStudios, StudioEditor, Bookings, Earnings)
+- `src/components/layout/StudioOwnerLayout.tsx`
+- `src/components/StudioOwnerRoute.tsx`, `src/hooks/useIsStudioOwner.ts`
+- `src/pages/admin/AdminStudios.tsx` + sidebar link
+- `src/pages/Onboarding.tsx` (add role-choice step)
+- `App.tsx` route additions
+
+## Notes / trade-offs
+- Weekly newsletter digest is wired (queue + button) but the cron job that actually sends it is deferred — say the word and I'll add it.
+- Studio availability uses recurring weekly windows + per-booking conflict check; full calendar UI can come later.
+- Existing tip / premium flows are untouched. The studio booking checkout reuses the same Paddle pipeline with `kind: "studio_booking"` in customData.
+- "Up next" on watch page is heuristic (same podcast first, then trending) — no ML.
