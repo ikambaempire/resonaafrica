@@ -18,6 +18,7 @@ import Landing from "./pages/Landing";
 
 const Auth = lazy(() => import("./pages/Auth"));
 const Discover = lazy(() => import("./pages/Discover"));
+const Watch = lazy(() => import("./pages/Watch"));
 const ChannelPage = lazy(() => import("./pages/ChannelPage"));
 const About = lazy(() => import("./pages/About"));
 const Services = lazy(() => import("./pages/Services"));
@@ -90,6 +91,7 @@ const App = () => (
                 <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/u/:username" element={<ProfilePage />} />
                 <Route path="/discover" element={<Discover />} />
+                <Route path="/watch/:episodeId" element={<Watch />} />
                 <Route path="/c/:slug" element={<ChannelPage />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/services" element={<Services />} />

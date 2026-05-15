@@ -101,7 +101,7 @@ const Landing = () => {
           aria-hidden
         />
         <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 to-background/30 lg:from-background/90 lg:via-background/50 lg:to-transparent" aria-hidden />
-        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 pt-20 pb-16 lg:pt-32 lg:pb-28 min-h-[640px] lg:min-h-[760px] grid lg:grid-cols-[1.1fr_0.9fr] gap-12 lg:gap-16 items-center">
+        <div className="relative max-w-7xl mx-auto px-6 lg:px-8 pt-12 pb-12 lg:pt-20 lg:pb-20 min-h-[calc(100vh-4rem)] grid lg:grid-cols-[1.1fr_0.9fr] gap-8 lg:gap-16 items-center">
           <div>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
