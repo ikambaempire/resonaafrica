@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Logo } from "@/components/Logo";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
 
 const groups = [
   {
@@ -39,6 +40,10 @@ export function Footer() {
             <p className="mt-4 text-sm text-muted-foreground max-w-xs leading-relaxed">
               The complete podcast production, distribution, and growth ecosystem for African creators and organizations.
             </p>
+            <div className="mt-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-2">Stay updated</p>
+              <NewsletterSignup />
+            </div>
           </div>
           {groups.map((g) => (
             <div key={g.title}>
