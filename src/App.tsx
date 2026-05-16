@@ -118,6 +118,7 @@ const App = () => (
                           <Route path="scheduler" element={<Scheduler />} />
                           <Route path="ai-clips" element={<AIClips />} />
                           <Route path="bookmarks" element={<Bookmarks />} />
+                          <Route path="subscribers" element={<Subscribers />} />
                           <Route path="watch-later" element={<WatchLaterPage />} />
                           <Route path="integrations" element={<Integrations />} />
                           <Route path="settings" element={<SettingsPage />} />
