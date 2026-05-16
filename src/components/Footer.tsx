@@ -1,3 +1,4 @@
+import { Download, Smartphone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
@@ -68,6 +69,28 @@ export function Footer() {
             Powered by <span className="text-accent font-semibold normal-case">iKAMBA</span>
           </p>
         </div>
+
+        <a
+          href="https://median.co/share/rdjrjwq#apk"
+          target="_blank"
+          rel="noreferrer"
+          className="mt-8 flex w-full items-center justify-between gap-4 rounded-2xl border border-border/60 bg-secondary/40 px-5 py-4 transition-colors hover:border-accent/60 hover:bg-secondary/70"
+          aria-label="Download the Resona Africa Android app"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent">
+              <Smartphone className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Android app</p>
+              <p className="mt-1 text-sm font-medium text-foreground">Download the Resona Africa mobile app</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <span>Get APK</span>
+            <Download className="h-4 w-4" />
+          </div>
+        </a>
       </div>
     </footer>
   );
