@@ -41,6 +41,7 @@ const Integrations = lazy(() => import("./pages/dashboard/Integrations"));
 const AIClips = lazy(() => import("./pages/dashboard/AIClips"));
 const SettingsPage = lazy(() => import("./pages/dashboard/SettingsPage"));
 const Bookmarks = lazy(() => import("./pages/dashboard/Library"));
+const Subscribers = lazy(() => import("./pages/dashboard/Subscribers"));
 const WatchLaterPage = lazy(() => import("./pages/dashboard/Library").then(m => ({ default: m.WatchLaterPage })));
 
 const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
@@ -117,6 +118,7 @@ const App = () => (
                           <Route path="scheduler" element={<Scheduler />} />
                           <Route path="ai-clips" element={<AIClips />} />
                           <Route path="bookmarks" element={<Bookmarks />} />
+                          <Route path="subscribers" element={<Subscribers />} />
                           <Route path="watch-later" element={<WatchLaterPage />} />
                           <Route path="integrations" element={<Integrations />} />
                           <Route path="settings" element={<SettingsPage />} />
