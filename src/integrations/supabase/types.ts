@@ -926,6 +926,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_users: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          bio: string
+          category: string
+          company: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          profile_kind: string
+          roles: string[]
+          username: string
+          website: string
+        }[]
+      }
       get_public_profile: {
         Args: { _username: string }
         Returns: {
