@@ -28,6 +28,7 @@ const navItems = [
   { title: "Scheduler", url: "/dashboard/scheduler", icon: Calendar },
   { title: "AI Clips", url: "/dashboard/ai-clips", icon: Sparkles },
   { title: "Monetization", url: "/dashboard/monetization", icon: DollarSign },
+  { title: "Subscribers", url: "/dashboard/subscribers", icon: Users },
   { title: "Bookmarks", url: "/dashboard/bookmarks", icon: Bookmark },
   { title: "Watch later", url: "/dashboard/watch-later", icon: Clock },
   { title: "Integrations", url: "/dashboard/integrations", icon: Puzzle },
