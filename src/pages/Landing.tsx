@@ -109,34 +109,34 @@ const Landing = () => {
               transition={{ duration: 0.6 }}
               className="max-w-2xl"
             >
-              <span className="inline-block text-xs uppercase tracking-[0.3em] text-accent font-semibold mb-4">By <span className="normal-case">iKAMBA</span></span>
-              <h1 className="font-display font-bold text-4xl sm:text-5xl lg:text-6xl xl:text-[64px] leading-[1.05] tracking-tight text-foreground">
+              <span className="inline-block text-[10px] uppercase tracking-[0.3em] text-accent font-semibold mb-3">By <span className="normal-case">iKAMBA</span></span>
+              <h1 className="font-display font-bold text-3xl sm:text-4xl lg:text-5xl xl:text-6xl leading-[1.05] tracking-tight text-foreground">
                 The Home For<br />
                 <span className="text-accent">African Podcasts</span>
               </h1>
-              <p className="mt-7 text-lg lg:text-xl text-foreground/85 max-w-xl leading-relaxed">
+              <p className="mt-4 text-base lg:text-lg text-foreground/85 max-w-xl leading-relaxed">
                 Resona helps African creators launch, distribute, and grow podcasts with AI-powered tools, audience discovery, and production support.
               </p>
-              <div className="mt-9 flex flex-col sm:flex-row gap-3">
-                <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full font-semibold shadow-gold text-base h-12 px-8">
+              <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-full font-semibold shadow-gold text-sm h-11 px-7">
                   <Link to="/auth">Get started <ArrowRight className="w-4 h-4 ml-1" /></Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="rounded-full font-semibold text-base h-12 px-8 border-border/70 backdrop-blur bg-background/30">
+                <Button asChild size="lg" variant="outline" className="rounded-full font-semibold text-sm h-11 px-7 border-border/70 backdrop-blur bg-background/30">
                   <Link to="/discover">Explore podcasts</Link>
                 </Button>
               </div>
             </motion.div>
 
             {/* Hero stats row */}
-            <div className="mt-12 lg:mt-16 grid grid-cols-3 gap-6 max-w-2xl">
+            <div className="mt-6 lg:mt-10 grid grid-cols-3 gap-4 max-w-2xl">
               {[
                 { v: "500+", l: "Episodes Produced" },
                 { v: "30+", l: "African Countries" },
                 { v: "200+", l: "Creators" },
               ].map((s) => (
                 <div key={s.l}>
-                  <p className="font-display font-bold text-3xl lg:text-5xl text-accent">{s.v}</p>
-                  <p className="mt-2 text-xs lg:text-sm uppercase tracking-[0.16em] text-foreground/70">{s.l}</p>
+                  <p className="font-display font-bold text-2xl lg:text-4xl text-accent">{s.v}</p>
+                  <p className="mt-1 text-[10px] lg:text-xs uppercase tracking-[0.16em] text-foreground/70">{s.l}</p>
                 </div>
               ))}
             </div>
