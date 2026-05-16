@@ -41,6 +41,7 @@ const Integrations = lazy(() => import("./pages/dashboard/Integrations"));
 const AIClips = lazy(() => import("./pages/dashboard/AIClips"));
 const SettingsPage = lazy(() => import("./pages/dashboard/SettingsPage"));
 const Bookmarks = lazy(() => import("./pages/dashboard/Library"));
+const Subscribers = lazy(() => import("./pages/dashboard/Subscribers"));
 const WatchLaterPage = lazy(() => import("./pages/dashboard/Library").then(m => ({ default: m.WatchLaterPage })));
 
 const AdminOverview = lazy(() => import("./pages/admin/AdminOverview"));
