@@ -2,19 +2,14 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Mic2,
-  TrendingUp,
   DollarSign,
   BarChart3,
   Sparkles,
   Globe2,
   ArrowRight,
-  Video,
   Share2,
-  Scissors,
   Users,
   Building2,
-  Lightbulb,
-  Headphones,
   Radio,
   Star,
 } from "lucide-react";
@@ -25,6 +20,7 @@ import { NewReleases } from "@/components/NewReleases";
 import { MockupCarousel } from "@/components/MockupCarousel";
 import { HeroTopPodcasts } from "@/components/HeroTopPodcasts";
 import { FeaturedPodcasts } from "@/components/FeaturedPodcasts";
+import { DashboardMotionShowcase } from "@/components/DashboardMotionShowcase";
 import heroBg from "@/assets/hero-resona-bg.jpg";
 import realStoriesImg from "@/assets/real-stories.jpg";
 
@@ -67,9 +63,6 @@ const catalog = [
   { tag: "CUSTOMER STORIES", title: "Impact Story", price: "From $2,500", img: "https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=700&q=80" },
   { tag: "VIDEO PODCAST", title: "Studio Series", price: "From $3,000", img: "https://images.unsplash.com/photo-1598550476439-6847785fcea6?w=700&q=80" },
 ];
-
-const humanCapabilities = ["Interviews", "Live shows", "On-location", "Field reporting", "Brand films", "Documentaries"];
-const aiCapabilities = ["Editing", "Voice-over", "Subtitles", "Clip generation", "Upscaling", "Versioning"];
 
 const features = [
   { icon: Mic2, title: "Podcast Hosting", body: "Video + audio with smart transcoding." },
@@ -233,64 +226,8 @@ const Landing = () => {
       {/* FEATURED PODCASTS — admin-curated carousel */}
       <FeaturedPodcasts />
 
-      {/* HUMAN + AI HYBRID — 90seconds split section */}
-      <section className="py-24 lg:py-32 border-t border-border/40">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="text-xs uppercase tracking-[0.2em] text-accent font-semibold">Hybrid</span>
-            <h2 className="mt-3 font-display font-bold text-4xl lg:text-6xl tracking-tight text-foreground">
-              Humans capture the story. <span className="text-accent">AI powers everything else.</span>
-            </h2>
-            <p className="mt-5 text-lg text-muted-foreground">
-              The only African platform where 200+ real-world creators, intelligent production agents, and generative AI work together to deliver podcasts at scale.
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* HUMAN */}
-            <div className="rounded-3xl border border-border/60 bg-card overflow-hidden">
-              <div className="aspect-[16/9] overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1598550476439-6847785fcea6?w=900&q=80" alt="" loading="lazy" className="w-full h-full object-cover" />
-              </div>
-              <div className="p-8 lg:p-10">
-                <span className="text-xs uppercase tracking-[0.2em] text-accent font-semibold">HUMAN</span>
-                <h3 className="mt-3 font-display font-bold text-3xl text-foreground">Capture what AI can't</h3>
-                <p className="mt-3 text-muted-foreground">Real African stories filmed by professional creators across the continent.</p>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  {humanCapabilities.map((c) => (
-                    <span key={c} className="px-3 py-1.5 rounded-full bg-secondary text-sm text-foreground border border-border/60">{c}</span>
-                  ))}
-                </div>
-                <div className="mt-8 grid grid-cols-2 gap-4">
-                  <div><p className="font-display font-bold text-3xl text-foreground">200+</p><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground mt-1">Creators</p></div>
-                  <div><p className="font-display font-bold text-3xl text-foreground">30+</p><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground mt-1">Countries</p></div>
-                </div>
-              </div>
-            </div>
-
-            {/* AI */}
-            <div className="rounded-3xl border border-border/60 bg-card overflow-hidden">
-              <div className="aspect-[16/9] overflow-hidden gradient-hero flex items-center justify-center">
-                <Sparkles className="w-24 h-24 text-accent/60" />
-              </div>
-              <div className="p-8 lg:p-10">
-                <span className="text-xs uppercase tracking-[0.2em] text-accent font-semibold">AI</span>
-                <h3 className="mt-3 font-display font-bold text-3xl text-foreground">Accelerate everything else</h3>
-                <p className="mt-3 text-muted-foreground">AI-assisted workflows that help creators move faster at every stage.</p>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  {aiCapabilities.map((c) => (
-                    <span key={c} className="px-3 py-1.5 rounded-full bg-secondary text-sm text-foreground border border-border/60">{c}</span>
-                  ))}
-                </div>
-                <div className="mt-8 grid grid-cols-2 gap-4">
-                  <div><p className="font-display font-bold text-3xl text-foreground">12</p><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground mt-1">AI Services</p></div>
-                  <div><p className="font-display font-bold text-3xl text-foreground">3x</p><p className="text-xs uppercase tracking-[0.14em] text-muted-foreground mt-1">Faster delivery</p></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* LIVE DASHBOARD WORKFLOW DEMO */}
+      <DashboardMotionShowcase />
 
       {/* PLATFORM FEATURES */}
       <section id="features" className="py-24 lg:py-32 border-t border-border/40 bg-secondary/20">
